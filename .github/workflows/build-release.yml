@@ -47,9 +47,13 @@ jobs:
         run: npm ci
 
       - name: Build Tauri app
-        run: npx tauri build --target ${{ matrix.target }}
+        run: npx tauri build --target ${{ matrix.target }} --bundles dmg
         env:
           TAURI_SIGNING_PRIVATE_KEY: ''
+          CI: true
+
+      - name: List build output
+        run: find src-tauri/target/${{ matrix.target }}/release/bundle -type f 2>/dev/null || echo "No bundle directory found"
 
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
