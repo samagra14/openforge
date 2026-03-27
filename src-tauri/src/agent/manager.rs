@@ -212,8 +212,8 @@ impl AgentManager {
                     }
 
                     StreamEvent::User { message: user_msg } => {
-                        // User events contain tool results — store them so
-                        // the next assistant snapshot picks them up.
+                        // User events contain tool results — store them and
+                        // update current_tool_calls so the frontend sees outputs.
                         for block in &user_msg.content {
                             match block {
                                 UserContentBlock::ToolResult {
@@ -228,10 +228,36 @@ impl AgentManager {
                                     };
                                     tool_outputs.insert(
                                         tool_use_id.clone(),
-                                        (output_str, *is_error),
+                                        (output_str.clone(), *is_error),
                                     );
+
+                                    // Update the in-memory tool calls with the result
+                                    for tc in &mut current_tool_calls {
+                                        if tc.tool_use_id.as_deref() == Some(tool_use_id) {
+                                            tc.output = output_str.clone();
+                                            tc.status = if *is_error {
+                                                "error".to_string()
+                                            } else {
+                                                "done".to_string()
+                                            };
+                                        }
+                                    }
                                 }
                             }
+                        }
+
+                        // Emit updated tool call state to frontend
+                        if let Some(ref msg_id) = current_message_id {
+                            let _ = handle.emit(
+                                "agent:message",
+                                AgentMessageEvent {
+                                    session_id: sid.clone(),
+                                    message_id: msg_id.clone(),
+                                    role: "assistant".to_string(),
+                                    content: current_content.clone(),
+                                    tool_calls: current_tool_calls.clone(),
+                                },
+                            );
                         }
                     }
 
@@ -240,8 +266,7 @@ impl AgentManager {
                         content,
                         is_error,
                     } => {
-                        // Store the tool output so we can attach it when the
-                        // next assistant snapshot includes this tool_use_id.
+                        // Store the tool output for future assistant snapshots.
                         let output_str = match &content {
                             Some(serde_json::Value::String(s)) => Some(s.clone()),
                             Some(v) => Some(v.to_string()),
@@ -253,10 +278,20 @@ impl AgentManager {
                             (output_str.clone(), is_error),
                         );
 
-                        // The next "assistant" snapshot will include the
-                        // tool_use block again, and we'll pick up the stored
-                        // output from tool_outputs at that point. But to give
-                        // the frontend immediate feedback, emit an update now.
+                        // Update current_tool_calls in place so the emitted
+                        // event reflects the actual output and status.
+                        for tc in &mut current_tool_calls {
+                            if tc.tool_use_id.as_deref() == Some(&tool_use_id) {
+                                tc.output = output_str.clone();
+                                tc.status = if is_error {
+                                    "error".to_string()
+                                } else {
+                                    "done".to_string()
+                                };
+                            }
+                        }
+
+                        // Emit immediate update with corrected tool call state.
                         if let Some(ref msg_id) = current_message_id {
                             let _ = handle.emit(
                                 "agent:message",

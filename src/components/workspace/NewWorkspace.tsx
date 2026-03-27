@@ -22,7 +22,6 @@ export function NewWorkspace() {
 
   if (!newWorkspaceOpen) return null;
 
-  // Compute the effective repo id: use selectedRepoId if set, otherwise default to first repo
   const effectiveRepoId = selectedRepoId || (repos.length > 0 ? repos[0].id : "");
 
   const handleCreate = async () => {
@@ -35,7 +34,6 @@ export function NewWorkspace() {
       setActiveWorkspace(ws.id);
       setActiveRepo(ws.repo_id);
 
-      // Auto-create a chat session for the new workspace
       try {
         const session = await commands.createSession(ws.id, "sonnet");
         addSession(session);
@@ -58,45 +56,43 @@ export function NewWorkspace() {
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: "rgba(0,0,0,0.5)" }}
+      style={{ background: "var(--overlay)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) setNewWorkspaceOpen(false);
       }}
     >
       <div
-        className="w-96 rounded-lg p-5"
+        className="w-[440px] rounded-2xl p-7 animate-fade-in-scale"
         style={{
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border)",
+          background: "var(--bg-elevated)",
+          border: "1px solid var(--border-strong)",
+          boxShadow: "var(--shadow-lg)",
         }}
       >
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold">New Workspace</h2>
+        <div className="flex items-center justify-between mb-6">
+          <h2
+            className="font-semibold"
+            style={{ color: "var(--text-primary)", letterSpacing: "-0.02em", fontSize: 16 }}
+          >
+            New Workspace
+          </h2>
           <button
             onClick={() => setNewWorkspaceOpen(false)}
-            className="p-1 rounded hover:bg-white/5"
+            className="p-1.5 rounded-lg hover-bg transition-colors"
           >
-            <X size={16} style={{ color: "var(--text-secondary)" }} />
+            <X size={16} style={{ color: "var(--text-tertiary)" }} />
           </button>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-5">
           <div>
-            <label
-              className="block text-xs mb-1"
-              style={{ color: "var(--text-secondary)" }}
-            >
+            <label className="section-label block mb-2.5">
               Repository
             </label>
             <select
               value={effectiveRepoId}
               onChange={(e) => setSelectedRepoId(e.target.value)}
-              className="w-full px-3 py-1.5 rounded text-xs outline-none"
-              style={{
-                background: "var(--bg-input)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-              }}
+              className="premium-input w-full"
             >
               {repos.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -107,22 +103,17 @@ export function NewWorkspace() {
           </div>
 
           <div>
-            <label
-              className="block text-xs mb-1"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              Task description (optional)
+            <label className="section-label block mb-2.5">
+              Task description
+              <span style={{ color: "var(--text-tertiary)", fontWeight: 400, textTransform: "none", letterSpacing: "normal" }}>
+                {" "}(optional)
+              </span>
             </label>
             <input
               value={task}
               onChange={(e) => setTask(e.target.value)}
               placeholder="e.g., Add navigation icons"
-              className="w-full px-3 py-1.5 rounded text-xs outline-none"
-              style={{
-                background: "var(--bg-input)",
-                color: "var(--text-primary)",
-                border: "1px solid var(--border)",
-              }}
+              className="premium-input w-full"
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleCreate();
               }}
@@ -130,15 +121,22 @@ export function NewWorkspace() {
           </div>
 
           {error && (
-            <p className="text-xs px-2 py-1.5 rounded" style={{ color: "#e06c75", background: "rgba(224,108,117,0.1)" }}>
+            <p
+              className="text-sm px-4 py-3 rounded-xl"
+              style={{
+                color: "var(--error)",
+                background: "var(--error-subtle)",
+                border: "1px solid rgba(184, 100, 94, 0.2)",
+              }}
+            >
               {error}
             </p>
           )}
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-3 pt-3">
             <button
               onClick={() => setNewWorkspaceOpen(false)}
-              className="px-3 py-1.5 rounded text-xs"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium transition-colors hover-bg"
               style={{
                 color: "var(--text-secondary)",
                 border: "1px solid var(--border)",
@@ -149,9 +147,9 @@ export function NewWorkspace() {
             <button
               onClick={handleCreate}
               disabled={!effectiveRepoId || creating}
-              className="px-3 py-1.5 rounded text-xs font-medium disabled:opacity-50"
+              className="px-5 py-2.5 rounded-xl text-sm font-medium disabled:opacity-40 transition-all"
               style={{
-                background: "var(--accent)",
+                background: "var(--text-primary)",
                 color: "var(--bg-primary)",
               }}
             >

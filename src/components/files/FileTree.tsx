@@ -39,7 +39,7 @@ export function FileTree({ workspaceId }: Props) {
 
   if (loading) {
     return (
-      <div className="p-3 text-xs" style={{ color: "var(--text-tertiary)" }}>
+      <div className="p-4 text-sm" style={{ color: "var(--text-tertiary)" }}>
         Loading files...
       </div>
     );
@@ -50,10 +50,10 @@ export function FileTree({ workspaceId }: Props) {
       <div className="h-full flex flex-col">
         {/* Breadcrumb */}
         <div
-          className="flex items-center gap-1 px-3 py-1.5 text-2xs"
+          className="flex items-center gap-2 px-4 py-2.5 text-xs"
           style={{
             borderBottom: "1px solid var(--border)",
-            color: "var(--text-secondary)",
+            color: "var(--text-tertiary)",
           }}
         >
           <button
@@ -61,21 +61,22 @@ export function FileTree({ workspaceId }: Props) {
               setSelectedFile(null);
               setFileContent(null);
             }}
-            className="hover:underline"
+            className="hover-bg px-1.5 py-0.5 rounded-md transition-colors"
+            style={{ color: "var(--text-secondary)" }}
           >
             Files
           </button>
-          <span>/</span>
+          <span style={{ opacity: 0.35 }}>/</span>
           <span style={{ color: "var(--text-primary)" }}>{selectedFile}</span>
         </div>
 
         {/* File content */}
         <pre
-          className="flex-1 overflow-auto p-3 text-xs leading-relaxed"
+          className="flex-1 overflow-auto p-4 leading-relaxed"
           style={{
             background: "var(--code-bg)",
             fontFamily: '"SF Mono", "Menlo", monospace',
-            fontSize: 12,
+            fontSize: 13,
           }}
         >
           {fileContent}
@@ -119,32 +120,34 @@ function FileTreeNode({
             onFileClick(entry.path);
           }
         }}
-        className="w-full flex items-center gap-1.5 px-2 py-0.5 text-xs hover:bg-white/5"
+        className="w-full flex items-center gap-2 px-3 py-1.5 text-sm hover-bg transition-colors"
         style={{
-          paddingLeft: 8 + depth * 16,
+          paddingLeft: 10 + depth * 18,
           color: "var(--text-secondary)",
         }}
       >
         {entry.is_dir ? (
           <>
             {expanded ? (
-              <ChevronDown size={12} style={{ color: "var(--text-tertiary)" }} />
+              <ChevronDown size={13} style={{ color: "var(--text-tertiary)" }} />
             ) : (
-              <ChevronRight size={12} style={{ color: "var(--text-tertiary)" }} />
+              <ChevronRight size={13} style={{ color: "var(--text-tertiary)" }} />
             )}
             {expanded ? (
-              <FolderOpen size={14} style={{ color: "var(--accent-dim)" }} />
+              <FolderOpen size={14} style={{ color: "var(--text-secondary)" }} />
             ) : (
-              <Folder size={14} style={{ color: "var(--accent-dim)" }} />
+              <Folder size={14} style={{ color: "var(--text-secondary)" }} />
             )}
           </>
         ) : (
           <>
-            <span className="w-3" />
+            <span className="w-3.5" />
             <File size={14} style={{ color: "var(--text-tertiary)" }} />
           </>
         )}
-        <span className="truncate">{entry.name}</span>
+        <span className="truncate" style={{ letterSpacing: "-0.01em" }}>
+          {entry.name}
+        </span>
       </button>
 
       {expanded && entry.children && (

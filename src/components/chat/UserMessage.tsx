@@ -22,23 +22,23 @@ export const UserMessage = memo(function UserMessage({ message }: Props) {
 
   return (
     <div
-      className="relative rounded-md px-4 py-3"
+      className="relative rounded-lg px-5 py-4"
       style={{
         background: "var(--user-msg-bg)",
-        border: "1px solid var(--border)",
+        borderLeft: "2.5px solid var(--border-strong)",
       }}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => setHovering(false)}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <p
-            className="text-2xs font-medium mb-1"
-            style={{ color: "var(--text-tertiary)" }}
-          >
+          <p className="section-label mb-2">
             You
           </p>
-          <p className="whitespace-pre-wrap" style={{ lineHeight: 1.6 }}>
+          <p
+            className="whitespace-pre-wrap"
+            style={{ lineHeight: 1.75, letterSpacing: "-0.01em", fontSize: 14 }}
+          >
             {message.content}
           </p>
         </div>
@@ -46,7 +46,7 @@ export const UserMessage = memo(function UserMessage({ message }: Props) {
         {message.checkpoint_ref && hovering && (
           <button
             onClick={handleRevert}
-            className="p-1 rounded hover:bg-white/10 flex-shrink-0"
+            className="p-1.5 rounded-md hover-bg flex-shrink-0 transition-colors"
             title="Revert to this checkpoint"
           >
             <RotateCcw size={14} style={{ color: "var(--text-secondary)" }} />
