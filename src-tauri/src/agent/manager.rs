@@ -228,10 +228,37 @@ impl AgentManager {
                                     };
                                     tool_outputs.insert(
                                         tool_use_id.clone(),
-                                        (output_str, *is_error),
+                                        (output_str.clone(), *is_error),
                                     );
+
+                                    // Update current_tool_calls in-place so
+                                    // the frontend sees tool completion immediately.
+                                    for tc in current_tool_calls.iter_mut() {
+                                        if tc.tool_use_id.as_deref() == Some(tool_use_id) {
+                                            tc.output = output_str.clone();
+                                            tc.status = if *is_error {
+                                                "error".to_string()
+                                            } else {
+                                                "done".to_string()
+                                            };
+                                        }
+                                    }
                                 }
                             }
+                        }
+
+                        // Emit updated tool call statuses to the frontend.
+                        if let Some(ref msg_id) = current_message_id {
+                            let _ = handle.emit(
+                                "agent:message",
+                                AgentMessageEvent {
+                                    session_id: sid.clone(),
+                                    message_id: msg_id.clone(),
+                                    role: "assistant".to_string(),
+                                    content: current_content.clone(),
+                                    tool_calls: current_tool_calls.clone(),
+                                },
+                            );
                         }
                     }
 
@@ -253,10 +280,22 @@ impl AgentManager {
                             (output_str.clone(), is_error),
                         );
 
-                        // The next "assistant" snapshot will include the
-                        // tool_use block again, and we'll pick up the stored
-                        // output from tool_outputs at that point. But to give
-                        // the frontend immediate feedback, emit an update now.
+                        // Update current_tool_calls in-place so the emitted
+                        // event reflects the completed status immediately,
+                        // rather than waiting for the next assistant snapshot.
+                        for tc in current_tool_calls.iter_mut() {
+                            if tc.tool_use_id.as_deref() == Some(&tool_use_id) {
+                                tc.output = output_str.clone();
+                                tc.status = if is_error {
+                                    "error".to_string()
+                                } else {
+                                    "done".to_string()
+                                };
+                            }
+                        }
+
+                        // Emit updated state so the frontend shows the tool
+                        // result immediately.
                         if let Some(ref msg_id) = current_message_id {
                             let _ = handle.emit(
                                 "agent:message",
