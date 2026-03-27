@@ -231,8 +231,9 @@ impl AgentManager {
                                         (output_str.clone(), *is_error),
                                     );
 
-                                    // Update the in-memory tool calls with the result
-                                    for tc in &mut current_tool_calls {
+                                    // Update current_tool_calls in-place so
+                                    // the frontend sees tool completion immediately.
+                                    for tc in current_tool_calls.iter_mut() {
                                         if tc.tool_use_id.as_deref() == Some(tool_use_id) {
                                             tc.output = output_str.clone();
                                             tc.status = if *is_error {
@@ -246,7 +247,7 @@ impl AgentManager {
                             }
                         }
 
-                        // Emit updated tool call state to frontend
+                        // Emit updated tool call statuses to the frontend.
                         if let Some(ref msg_id) = current_message_id {
                             let _ = handle.emit(
                                 "agent:message",
@@ -278,9 +279,10 @@ impl AgentManager {
                             (output_str.clone(), is_error),
                         );
 
-                        // Update current_tool_calls in place so the emitted
-                        // event reflects the actual output and status.
-                        for tc in &mut current_tool_calls {
+                        // Update current_tool_calls in-place so the emitted
+                        // event reflects the completed status immediately,
+                        // rather than waiting for the next assistant snapshot.
+                        for tc in current_tool_calls.iter_mut() {
                             if tc.tool_use_id.as_deref() == Some(&tool_use_id) {
                                 tc.output = output_str.clone();
                                 tc.status = if is_error {
@@ -291,7 +293,8 @@ impl AgentManager {
                             }
                         }
 
-                        // Emit immediate update with corrected tool call state.
+                        // Emit updated state so the frontend shows the tool
+                        // result immediately.
                         if let Some(ref msg_id) = current_message_id {
                             let _ = handle.emit(
                                 "agent:message",
