@@ -89,17 +89,18 @@ export function ChatInput({ sessionId }: Props) {
         : "Sonnet 4.6";
 
   return (
-    <div className="max-w-3xl mx-auto w-full px-6 pb-3">
+    <div className="max-w-3xl mx-auto w-full px-6 pb-5">
       <div
-        className="rounded-xl overflow-hidden"
+        className="rounded-2xl overflow-hidden"
         style={{
           background: "var(--bg-tertiary)",
-          border: `1px solid ${hasText ? "var(--text-tertiary)" : "var(--border)"}`,
-          transition: "border-color 0.15s",
+          border: `1px solid ${hasText ? "var(--border-strong)" : "var(--border)"}`,
+          boxShadow: hasText ? "var(--shadow-md)" : "var(--shadow-xs)",
+          transition: "border-color 0.2s ease, box-shadow 0.2s ease",
         }}
       >
         {/* Input row */}
-        <div className="flex items-end px-4 pt-3 pb-2">
+        <div className="flex items-end px-5 pt-4 pb-3">
           <textarea
             id="chat-input"
             ref={textareaRef}
@@ -113,41 +114,44 @@ export function ChatInput({ sessionId }: Props) {
             }
             disabled={disabled}
             rows={1}
-            className="flex-1 resize-none bg-transparent outline-none text-sm"
+            className="flex-1 resize-none bg-transparent outline-none"
             style={{
               color: "var(--text-primary)",
               maxHeight: 200,
-              lineHeight: 1.5,
+              lineHeight: 1.6,
+              letterSpacing: "-0.01em",
+              fontSize: 14,
             }}
           />
 
           {isRunning ? (
             <button
               onClick={handleStop}
-              className="flex-shrink-0 ml-2 p-1 rounded-md hover:bg-white/10 transition-colors"
+              className="flex-shrink-0 ml-3 p-2 rounded-lg hover-bg transition-colors"
               title="Stop (Esc)"
             >
-              <Square size={16} fill="var(--error)" style={{ color: "var(--error)" }} />
+              <Square size={15} fill="var(--error)" style={{ color: "var(--error)" }} />
             </button>
           ) : (
             <button
               onClick={handleSend}
               disabled={!hasText || sending}
-              className="flex-shrink-0 ml-2 w-7 h-7 rounded-lg flex items-center justify-center disabled:opacity-20 transition-all"
+              className="flex-shrink-0 ml-3 w-8 h-8 rounded-lg flex items-center justify-center disabled:opacity-15 transition-all"
               style={{
-                background: hasText ? "var(--text-secondary)" : "transparent",
+                background: hasText ? "var(--text-primary)" : "transparent",
+                border: hasText ? "none" : "1px solid var(--border)",
               }}
               title="Send (Enter)"
             >
               {sending ? (
                 <Loader2
-                  size={14}
+                  size={15}
                   className="animate-spin"
                   style={{ color: "var(--bg-primary)" }}
                 />
               ) : (
                 <ArrowUp
-                  size={14}
+                  size={15}
                   style={{
                     color: hasText ? "var(--bg-primary)" : "var(--text-tertiary)",
                   }}
@@ -157,14 +161,14 @@ export function ChatInput({ sessionId }: Props) {
           )}
         </div>
 
-        {/* Bottom toolbar inside the input card */}
-        <div className="flex items-center justify-between px-3 pb-2">
+        {/* Bottom toolbar */}
+        <div className="flex items-center justify-between px-4 pb-3">
           <div className="flex items-center gap-1">
             {/* Model selector */}
             <div className="relative">
               <button
                 onClick={() => setShowModelMenu(!showModelMenu)}
-                className="flex items-center gap-1.5 px-2 py-1 rounded text-2xs hover:bg-white/5 transition-colors"
+                className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs hover-bg transition-colors"
                 style={{ color: "var(--text-secondary)" }}
               >
                 <span
@@ -172,7 +176,7 @@ export function ChatInput({ sessionId }: Props) {
                   style={{ background: "var(--success)" }}
                 />
                 {modelLabel}
-                <ChevronDown size={10} style={{ color: "var(--text-tertiary)" }} />
+                <ChevronDown size={11} style={{ color: "var(--text-tertiary)" }} />
               </button>
 
               {showModelMenu && (
@@ -182,10 +186,11 @@ export function ChatInput({ sessionId }: Props) {
                     onClick={() => setShowModelMenu(false)}
                   />
                   <div
-                    className="absolute bottom-full left-0 mb-1 rounded-md shadow-lg py-1 min-w-[140px] z-50"
+                    className="absolute bottom-full left-0 mb-1.5 rounded-xl py-2 min-w-[160px] z-50 animate-fade-in-scale"
                     style={{
-                      background: "var(--bg-secondary)",
-                      border: "1px solid var(--border)",
+                      background: "var(--bg-elevated)",
+                      border: "1px solid var(--border-strong)",
+                      boxShadow: "var(--shadow-lg)",
                     }}
                   >
                     {["sonnet", "opus", "haiku"].map((m) => (
@@ -195,12 +200,13 @@ export function ChatInput({ sessionId }: Props) {
                           setModel(m);
                           setShowModelMenu(false);
                         }}
-                        className="w-full text-left px-3 py-1.5 text-2xs hover:bg-white/5 flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 text-xs hover-bg flex items-center gap-2 transition-colors"
                         style={{
                           color:
                             m === model
                               ? "var(--text-primary)"
                               : "var(--text-secondary)",
+                          fontWeight: m === model ? 500 : 400,
                         }}
                       >
                         {m === "opus"
@@ -217,31 +223,31 @@ export function ChatInput({ sessionId }: Props) {
 
             {/* Feedback */}
             <button
-              className="p-1 rounded hover:bg-white/5 transition-colors"
+              className="p-1.5 rounded-lg hover-bg transition-colors"
               title="Give feedback"
             >
-              <ThumbsDown size={12} style={{ color: "var(--text-tertiary)" }} />
+              <ThumbsDown size={13} style={{ color: "var(--text-tertiary)" }} />
             </button>
 
             {/* Thinking toggle */}
             <button
               onClick={() => setThinking(!thinking)}
-              className="flex items-center gap-1 px-2 py-1 rounded text-2xs transition-colors hover:bg-white/5"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors hover-bg"
               style={{
                 color: thinking ? "var(--accent)" : "var(--text-tertiary)",
               }}
             >
-              <Brain size={12} />
+              <Brain size={13} />
               Thinking
             </button>
           </div>
 
           {/* Right side */}
           <button
-            className="p-1 rounded hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-lg hover-bg transition-colors"
             title="New Chat (⌘T)"
           >
-            <Plus size={14} style={{ color: "var(--text-tertiary)" }} />
+            <Plus size={15} style={{ color: "var(--text-tertiary)" }} />
           </button>
         </div>
       </div>

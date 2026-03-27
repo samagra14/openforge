@@ -3,16 +3,17 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message, ToolCall } from "../../stores/session";
 import {
-  Brain,
   ChevronRight,
   ChevronDown,
-  Check,
-  Loader2,
-  AlertCircle,
   Copy,
   ClipboardCheck,
-  GitBranch,
   Bot,
+  FileText,
+  Terminal as TerminalIcon,
+  Search,
+  Pencil,
+  FilePlus2,
+  FolderSearch,
 } from "lucide-react";
 
 interface Props {
@@ -35,24 +36,62 @@ function parseThinking(content: string): {
   return { thinking: thinkingBlocks, text: text.trim() };
 }
 
-/** Format a tool call's first argument into a short summary */
-function toolSummary(tc: ToolCall): string {
-  if (!tc.input || typeof tc.input !== "object") return "";
-  const val = tc.input as Record<string, unknown>;
+/** Get a short filename from a path */
+function shortName(path: string): string {
+  return path.split("/").pop() ?? path;
+}
 
-  // Common patterns
-  if (val.command) return String(val.command).slice(0, 80);
-  if (val.file_path) return String(val.file_path);
-  if (val.pattern) return String(val.pattern);
-  if (val.query) return String(val.query).slice(0, 60);
-  if (val.prompt) return String(val.prompt).slice(0, 60);
-  if (val.description) return String(val.description).slice(0, 60);
-  if (val.path) return String(val.path);
-  if (val.content) return String(val.content).slice(0, 60);
+/** Build a human-readable description + optional file badge for a tool call */
+function toolDisplay(tc: ToolCall): { label: string; badge: string | null; icon: typeof FileText } {
+  const val = (tc.input && typeof tc.input === "object" ? tc.input : {}) as Record<string, unknown>;
 
-  // Fallback: show first string value
-  const firstVal = Object.values(val).find((v) => typeof v === "string");
-  return firstVal ? String(firstVal).slice(0, 60) : "";
+  switch (tc.name) {
+    case "Read":
+      return {
+        label: "Read",
+        badge: val.file_path ? shortName(String(val.file_path)) : null,
+        icon: FileText,
+      };
+    case "Edit":
+      return {
+        label: "Edit",
+        badge: val.file_path ? shortName(String(val.file_path)) : null,
+        icon: Pencil,
+      };
+    case "Write":
+      return {
+        label: "Write",
+        badge: val.file_path ? shortName(String(val.file_path)) : null,
+        icon: FilePlus2,
+      };
+    case "Bash":
+      return {
+        label: "Run",
+        badge: val.command ? String(val.command).slice(0, 50) : null,
+        icon: TerminalIcon,
+      };
+    case "Grep":
+      return {
+        label: "Search",
+        badge: val.pattern ? String(val.pattern).slice(0, 40) : null,
+        icon: Search,
+      };
+    case "Glob":
+      return {
+        label: "Find",
+        badge: val.pattern ? String(val.pattern).slice(0, 40) : null,
+        icon: FolderSearch,
+      };
+    default: {
+      // Generic fallback
+      const firstStr = Object.values(val).find((v) => typeof v === "string");
+      return {
+        label: tc.name,
+        badge: firstStr ? String(firstStr).slice(0, 50) : null,
+        icon: FileText,
+      };
+    }
+  }
 }
 
 /** Format duration from ms */
@@ -61,7 +100,7 @@ function formatDuration(ms: number): string {
   if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
   const mins = Math.floor(ms / 60000);
   const secs = ((ms % 60000) / 1000).toFixed(0);
-  return `${mins}m, ${secs}s`;
+  return `${mins}m ${secs}s`;
 }
 
 /** Detect if a tool call is an Agent (subagent) call */
@@ -69,46 +108,49 @@ function isAgentCall(tc: ToolCall): boolean {
   return tc.name === "Agent" || tc.name === "Task" || tc.name === "TaskCreate";
 }
 
-/** Get file path from tool call if it's a file operation */
-function getFileBadge(tc: ToolCall): string | null {
-  if (!tc.input || typeof tc.input !== "object") return null;
-  const val = tc.input as Record<string, unknown>;
-  if (
-    (tc.name === "Edit" || tc.name === "Write" || tc.name === "Read") &&
-    val.file_path
-  ) {
-    const fp = String(val.file_path);
-    return fp.split("/").pop() ?? fp;
-  }
-  return null;
+function StatusDot({ status }: { status: string }) {
+  const color =
+    status === "done"
+      ? "var(--success)"
+      : status === "error"
+        ? "var(--error)"
+        : "var(--accent)";
+
+  return (
+    <span
+      className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${status === "running" ? "animate-pulse-dot" : ""}`}
+      style={{ background: color }}
+    />
+  );
 }
 
 function ThinkingBlock({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
 
   return (
-    <div
-      className="mb-3 rounded"
-      style={{
-        background: "rgba(255,255,255,0.03)",
-        border: "1px solid var(--border)",
-      }}
-    >
+    <div className="thinking-block mb-4">
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full px-3 py-2 text-xs"
-        style={{ color: "var(--text-tertiary)" }}
+        className="flex items-center gap-3 w-full px-5 py-3"
       >
-        <Brain size={13} style={{ color: "var(--text-tertiary)" }} />
-        <span>Thinking</span>
-        <span className="ml-auto">
-          {expanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+        <span
+          className="section-label"
+          style={{
+            color: "var(--accent)",
+            fontStyle: "italic",
+            letterSpacing: "0.06em",
+          }}
+        >
+          Reasoning
+        </span>
+        <span className="ml-auto" style={{ color: "var(--text-tertiary)" }}>
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
       </button>
       {expanded && (
         <div
-          className="px-3 pb-3 text-xs"
-          style={{ color: "var(--text-tertiary)", lineHeight: 1.6 }}
+          className="px-5 pb-4 text-sm"
+          style={{ color: "var(--text-secondary)", lineHeight: 1.75 }}
         >
           {text}
         </div>
@@ -117,72 +159,147 @@ function ThinkingBlock({ text }: { text: string }) {
   );
 }
 
-function ToolCallItem({ tc }: { tc: ToolCall }) {
+/** Flat inline row for regular tool calls (Read, Edit, Write, Bash, etc.) */
+function InlineToolCall({ tc }: { tc: ToolCall }) {
   const [expanded, setExpanded] = useState(false);
-  const isAgent = isAgentCall(tc);
-  const summary = toolSummary(tc);
-
-  const statusIcon = () => {
-    switch (tc.status) {
-      case "running":
-        return (
-          <Loader2
-            size={12}
-            className="animate-spin"
-            style={{ color: "var(--accent)" }}
-          />
-        );
-      case "done":
-        return <Check size={12} style={{ color: "var(--success)" }} />;
-      case "error":
-        return <AlertCircle size={12} style={{ color: "var(--error)" }} />;
-    }
-  };
+  const { label, badge, icon: Icon } = toolDisplay(tc);
+  const isBash = tc.name === "Bash";
 
   return (
-    <div
-      className="rounded"
-      style={{
-        background: "rgba(255,255,255,0.02)",
-        border: "1px solid var(--border)",
-      }}
-    >
+    <div>
       <button
         onClick={() => setExpanded(!expanded)}
-        className="flex items-center gap-2 w-full px-3 py-1.5 text-xs"
-        style={{ color: "var(--text-secondary)" }}
+        className="flex items-center gap-2.5 py-1.5 w-full hover-bg rounded-lg px-2.5 -mx-2.5 transition-colors cursor-pointer"
       >
-        {statusIcon()}
-        {isAgent ? (
-          <Bot size={13} style={{ color: "var(--accent)" }} />
-        ) : null}
+        <StatusDot status={tc.status} />
+        <Icon size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
         <span
-          className="font-medium"
-          style={{ color: isAgent ? "var(--accent)" : "var(--text-primary)" }}
+          className="text-[13px] font-medium flex-shrink-0"
+          style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}
         >
-          {isAgent ? "Agent" : tc.name}
+          {label}
         </span>
-        <span
-          className="truncate text-left flex-1 font-mono"
-          style={{ color: "var(--text-tertiary)", fontSize: 11 }}
-        >
-          {summary}
+        {badge && (
+          isBash ? (
+            <span
+              className="truncate text-left flex-1 font-mono"
+              style={{ color: "var(--text-tertiary)", fontSize: 12 }}
+            >
+              {badge}
+            </span>
+          ) : (
+            <span className="file-badge">
+              {badge}
+            </span>
+          )
+        )}
+        <span className="ml-auto flex-shrink-0" style={{ color: "var(--text-tertiary)" }}>
+          {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
         </span>
-        {expanded ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
       </button>
 
-      {expanded && tc.output && (
+      {expanded && (
         <div
-          className="px-3 pb-2 overflow-auto"
-          style={{ maxHeight: 200 }}
+          className="ml-7 pl-4 py-2.5 overflow-auto"
+          style={{
+            borderLeft: "1.5px solid var(--border-strong)",
+            maxHeight: 280,
+          }}
         >
-          <pre
-            className="text-2xs font-mono whitespace-pre-wrap"
-            style={{ color: "var(--text-tertiary)", lineHeight: 1.4 }}
-          >
-            {tc.output.slice(0, 2000)}
-          </pre>
+          {tc.output ? (
+            <pre
+              className="font-mono whitespace-pre-wrap"
+              style={{
+                color: "var(--text-secondary)",
+                lineHeight: 1.65,
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                fontSize: 12,
+              }}
+            >
+              {tc.output.slice(0, 2000)}
+            </pre>
+          ) : (
+            <span
+              className="text-xs italic"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              {tc.status === "running" ? "Executing\u2026" : "No output"}
+            </span>
+          )}
         </div>
+      )}
+    </div>
+  );
+}
+
+/** Card treatment for Agent calls */
+function AgentToolCall({ tc }: { tc: ToolCall }) {
+  const [expanded, setExpanded] = useState(false);
+  const val = (tc.input && typeof tc.input === "object" ? tc.input : {}) as Record<string, unknown>;
+  const description = val.description
+    ? String(val.description).slice(0, 60)
+    : val.prompt
+      ? String(val.prompt).slice(0, 60)
+      : "";
+
+  return (
+    <div className="tool-card tool-card-agent">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-3 w-full px-4 py-3 text-[13px] cursor-pointer"
+      >
+        <StatusDot status={tc.status} />
+        <Bot size={15} style={{ color: "var(--accent)" }} />
+        <span
+          className="font-medium"
+          style={{ color: "var(--accent)", letterSpacing: "-0.01em" }}
+        >
+          Agent
+        </span>
+        <span
+          className="truncate text-left flex-1"
+          style={{ color: "var(--text-secondary)", fontSize: 13 }}
+        >
+          {description}
+        </span>
+        <span style={{ color: "var(--text-tertiary)" }}>
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </span>
+      </button>
+
+      {expanded && (
+        <>
+          <div
+            className="mx-4"
+            style={{ borderTop: "1px solid var(--border-strong)" }}
+          />
+          <div className="px-4 py-3.5 overflow-auto" style={{ maxHeight: 280 }}>
+            {tc.output ? (
+              <pre
+                className="font-mono whitespace-pre-wrap"
+                style={{
+                  color: "var(--text-secondary)",
+                  lineHeight: 1.65,
+                  background: "transparent",
+                  border: "none",
+                  padding: 0,
+                  fontSize: 12,
+                }}
+              >
+                {tc.output.slice(0, 2000)}
+              </pre>
+            ) : (
+              <span
+                className="text-xs italic"
+                style={{ color: "var(--text-tertiary)" }}
+              >
+                {tc.status === "running" ? "Executing\u2026" : "No output"}
+              </span>
+            )}
+          </div>
+        </>
       )}
     </div>
   );
@@ -195,24 +312,6 @@ export const AssistantMessage = memo(function AssistantMessage({
 
   const { thinking, text } = parseThinking(message.content);
 
-  // Collect file badges from tool calls
-  const fileBadges: { name: string; adds: number; dels: number }[] = [];
-  if (message.tool_calls) {
-    const fileSet = new Set<string>();
-    for (const tc of message.tool_calls) {
-      const f = getFileBadge(tc);
-      if (f && !fileSet.has(f)) {
-        fileSet.add(f);
-        // Rough heuristic: Edit/Write = modified
-        fileBadges.push({
-          name: f,
-          adds: tc.name === "Write" ? 1 : tc.name === "Edit" ? 1 : 0,
-          dels: tc.name === "Edit" ? 1 : 0,
-        });
-      }
-    }
-  }
-
   const toolCalls = message.tool_calls ?? [];
   const agentCalls = toolCalls.filter(isAgentCall);
   const regularCalls = toolCalls.filter((tc) => !isAgentCall(tc));
@@ -224,7 +323,7 @@ export const AssistantMessage = memo(function AssistantMessage({
   };
 
   return (
-    <div className="py-2">
+    <div className="py-1">
       {/* Thinking blocks */}
       {thinking.map((t, i) => (
         <ThinkingBlock key={i} text={t} />
@@ -232,82 +331,54 @@ export const AssistantMessage = memo(function AssistantMessage({
 
       {/* Main text content */}
       {text && (
-        <div className="prose-sm" style={{ lineHeight: 1.6 }}>
+        <div className="assistant-prose" style={{ lineHeight: 1.85, fontSize: 14.5 }}>
           <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
         </div>
       )}
 
-      {/* Agent calls - shown prominently */}
+      {/* Agent calls — card treatment */}
       {agentCalls.length > 0 && (
-        <div className="mt-3 space-y-1.5">
+        <div className="mt-4 space-y-2.5">
           {agentCalls.map((tc, i) => (
-            <ToolCallItem key={i} tc={tc} />
+            <AgentToolCall key={i} tc={tc} />
           ))}
         </div>
       )}
 
-      {/* Regular tool calls */}
+      {/* Regular tool calls — flat inline rows */}
       {regularCalls.length > 0 && (
-        <div className="mt-3 space-y-1">
+        <div className="mt-4 space-y-0.5">
           {regularCalls.map((tc, i) => (
-            <ToolCallItem key={i} tc={tc} />
+            <InlineToolCall key={i} tc={tc} />
           ))}
         </div>
       )}
 
-      {/* Footer: duration, actions, file badges */}
-      {(message.duration_ms || fileBadges.length > 0 || toolCalls.length > 0) && (
-        <div className="flex items-center gap-2 mt-3 flex-wrap" style={{ color: "var(--text-tertiary)" }}>
-          {/* Duration */}
+      {/* Footer: duration + copy */}
+      {(message.duration_ms || text) && (
+        <div
+          className="flex items-center gap-3 mt-5"
+          style={{ color: "var(--text-tertiary)" }}
+        >
           {message.duration_ms ? (
-            <span className="text-2xs">{formatDuration(message.duration_ms)}</span>
+            <span className="text-xs font-mono" style={{ letterSpacing: "0.02em" }}>
+              {formatDuration(message.duration_ms)}
+            </span>
           ) : null}
 
-          {/* Separator */}
-          {message.duration_ms && (text || fileBadges.length > 0) && (
-            <span className="text-2xs">·</span>
-          )}
-
-          {/* Copy */}
           {text && (
             <button
               onClick={handleCopy}
-              className="p-0.5 rounded hover:bg-white/5"
+              className="p-1 rounded-md hover-bg transition-colors"
               title="Copy response"
             >
               {copied ? (
-                <ClipboardCheck size={13} style={{ color: "var(--success)" }} />
+                <ClipboardCheck size={14} style={{ color: "var(--success)" }} />
               ) : (
-                <Copy size={13} />
+                <Copy size={14} />
               )}
             </button>
           )}
-
-          {/* Git icon */}
-          {fileBadges.length > 0 && (
-            <>
-              <GitBranch size={13} />
-              <span className="text-2xs">·</span>
-            </>
-          )}
-
-          {/* File change badges - Conductor style */}
-          {fileBadges.map((f) => (
-            <span
-              key={f.name}
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-2xs font-mono"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                border: "1px solid var(--border)",
-              }}
-            >
-              <span
-                className="w-2 h-2 rounded-full flex-shrink-0"
-                style={{ background: "var(--accent)" }}
-              />
-              <span style={{ color: "var(--text-secondary)" }}>{f.name}</span>
-            </span>
-          ))}
         </div>
       )}
     </div>

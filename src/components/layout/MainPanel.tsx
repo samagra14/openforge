@@ -17,9 +17,6 @@ export function MainPanel() {
     (s) => s.workspace_id === activeWorkspaceId
   );
 
-  // Derive the active session: use activeSessionId if it belongs to this workspace,
-  // otherwise fall back to the first session for this workspace.
-  // No useEffect needed - pure derivation.
   const activeSession =
     workspaceSessions.find((s) => s.id === activeSessionId) ??
     workspaceSessions[0] ??
@@ -46,14 +43,14 @@ export function MainPanel() {
         style={{
           background: "var(--bg-secondary)",
           borderBottom: "1px solid var(--border)",
-          minHeight: 36,
+          minHeight: 40,
         }}
       >
         {workspaceSessions.map((session) => (
           <button
             key={session.id}
             onClick={() => setActiveSession(session.id)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-t relative"
+            className="flex items-center gap-2 px-4 py-2.5 text-sm rounded-t relative transition-colors"
             style={{
               background:
                 session.id === activeSession?.id
@@ -62,28 +59,30 @@ export function MainPanel() {
               color:
                 session.id === activeSession?.id
                   ? "var(--text-primary)"
-                  : "var(--text-secondary)",
+                  : "var(--text-tertiary)",
+              fontWeight: session.id === activeSession?.id ? 500 : 400,
               borderBottom:
                 session.id === activeSession?.id
                   ? "1px solid var(--bg-primary)"
                   : "none",
               marginBottom: -1,
+              letterSpacing: "-0.01em",
             }}
           >
-            <span className="truncate max-w-[120px]">{session.title}</span>
+            <span className="truncate max-w-[140px]">{session.title}</span>
             <X
               size={12}
-              className="opacity-0 hover:opacity-100"
+              className="opacity-0 hover:opacity-100 transition-opacity"
               style={{ color: "var(--text-tertiary)" }}
             />
           </button>
         ))}
         <button
           onClick={handleNewChat}
-          className="p-1.5 rounded hover:bg-white/5 ml-1"
+          className="p-2 rounded-lg hover-bg ml-1 transition-colors"
           title="New Chat (⌘T)"
         >
-          <Plus size={14} style={{ color: "var(--text-secondary)" }} />
+          <Plus size={14} style={{ color: "var(--text-tertiary)" }} />
         </button>
       </div>
 
@@ -98,7 +97,10 @@ export function MainPanel() {
           </>
         ) : (
           <div className="flex-1 flex flex-col items-center justify-center">
-            <p style={{ color: "var(--text-tertiary)" }}>
+            <p
+              className="text-sm"
+              style={{ color: "var(--text-tertiary)", letterSpacing: "-0.01em" }}
+            >
               {activeWorkspaceId
                 ? "No active chat. Press ⌘T to start one."
                 : "Select a workspace to get started."}

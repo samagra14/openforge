@@ -1,19 +1,22 @@
 import {
-  Anvil,
   Settings,
   Plus,
   FolderOpen,
   FolderPlus,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { useUIStore } from "../../stores/ui";
 import { RepoList } from "../workspace/RepoList";
 import { addRepoViaDialog } from "../../lib/addRepo";
+import { useTheme } from "../../hooks/useTheme";
 
 export function Sidebar() {
   const repos = useWorkspaceStore((s) => s.repos);
   const setSettingsOpen = useUIStore((s) => s.setSettingsOpen);
   const setNewWorkspaceOpen = useUIStore((s) => s.setNewWorkspaceOpen);
+  const { theme, toggle } = useTheme();
 
   return (
     <div
@@ -23,29 +26,16 @@ export function Sidebar() {
         borderRight: "1px solid var(--border)",
       }}
     >
-      {/* Header with drag region */}
-      <div
-        className="flex items-center gap-2 px-4 pt-8 pb-3"
-        data-tauri-drag-region
-      >
-        <Anvil size={18} style={{ color: "var(--accent)" }} />
-        <span className="font-semibold text-sm" style={{ color: "var(--text-primary)" }}>
-          OpenForge
-        </span>
-      </div>
+      {/* Drag region spacer for traffic lights */}
+      <div className="pt-10" data-tauri-drag-region />
 
       {/* Workspaces section */}
-      <div className="flex-1 overflow-y-auto px-2">
-        <div className="flex items-center justify-between px-2 py-2">
-          <span
-            className="text-xs font-medium uppercase tracking-wider"
-            style={{ color: "var(--text-tertiary)" }}
-          >
-            Workspaces
-          </span>
+      <div className="flex-1 overflow-y-auto px-2.5">
+        <div className="flex items-center justify-between px-2.5 py-3">
+          <span className="section-label">Workspaces</span>
           <button
             onClick={() => setNewWorkspaceOpen(true)}
-            className="p-1 rounded hover:bg-white/5"
+            className="p-1.5 rounded-lg hover-bg transition-colors"
             title="New Workspace (⌘N)"
           >
             <Plus size={14} style={{ color: "var(--text-secondary)" }} />
@@ -53,21 +43,24 @@ export function Sidebar() {
         </div>
 
         {repos.length === 0 ? (
-          <div className="px-3 py-6 text-center">
+          <div className="px-3 py-10 text-center">
             <FolderOpen
               size={32}
-              className="mx-auto mb-2"
-              style={{ color: "var(--text-tertiary)" }}
+              className="mx-auto mb-4"
+              style={{ color: "var(--text-tertiary)", opacity: 0.6 }}
             />
-            <p className="text-xs mb-3" style={{ color: "var(--text-tertiary)" }}>
+            <p
+              className="text-sm mb-5"
+              style={{ color: "var(--text-tertiary)", lineHeight: 1.5 }}
+            >
               No repositories added yet.
             </p>
             <button
               onClick={addRepoViaDialog}
-              className="flex items-center gap-2 px-3 py-2 rounded text-xs mx-auto hover:bg-white/5"
+              className="flex items-center gap-2.5 px-4 py-2.5 rounded-lg text-sm mx-auto hover-bg transition-colors"
               style={{
                 color: "var(--text-primary)",
-                border: "1px solid var(--border)",
+                border: "1px solid var(--border-strong)",
               }}
             >
               <FolderPlus size={14} />
@@ -81,12 +74,23 @@ export function Sidebar() {
 
       {/* Bottom actions */}
       <div
-        className="flex items-center gap-2 px-3 py-2"
+        className="flex items-center gap-1.5 px-4 py-3"
         style={{ borderTop: "1px solid var(--border)" }}
       >
         <button
+          onClick={toggle}
+          className="p-2 rounded-lg hover-bg transition-colors"
+          title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+        >
+          {theme === "dark" ? (
+            <Sun size={16} style={{ color: "var(--text-secondary)" }} />
+          ) : (
+            <Moon size={16} style={{ color: "var(--text-secondary)" }} />
+          )}
+        </button>
+        <button
           onClick={() => setSettingsOpen(true)}
-          className="p-1.5 rounded hover:bg-white/5"
+          className="p-2 rounded-lg hover-bg transition-colors"
           title="Settings (⌘,)"
         >
           <Settings size={16} style={{ color: "var(--text-secondary)" }} />

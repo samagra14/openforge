@@ -3,7 +3,6 @@ import { useSessionStore } from "../../stores/session";
 import type { Message } from "../../stores/session";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
-import { Loader2 } from "lucide-react";
 
 interface Props {
   sessionId: string;
@@ -13,10 +12,6 @@ interface Props {
 const EMPTY_MESSAGES: Message[] = [];
 
 export function ChatView({ sessionId }: Props) {
-  // Select messages for this session. The selector returns undefined
-  // when no messages exist yet; we fall back outside the selector so
-  // we don't create a new array reference inside Zustand's shallow
-  // equality check.
   const rawMessages = useSessionStore((s) => s.messages[sessionId]);
   const messages = rawMessages ?? EMPTY_MESSAGES;
 
@@ -25,8 +20,6 @@ export function ChatView({ sessionId }: Props) {
   );
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Memoize message count so auto-scroll only fires when a new message
-  // is added (not on every content update of an existing message).
   const messageCount = messages.length;
   const lastMessageContent = messages[messages.length - 1]?.content.length ?? 0;
 
@@ -39,15 +32,18 @@ export function ChatView({ sessionId }: Props) {
 
   if (messages.length === 0 && session?.status !== "running") {
     return (
-      <div className="flex-1 flex flex-col items-center justify-end pb-4 h-full">
-        <div className="text-center px-8 mb-2">
+      <div className="flex-1 flex flex-col items-center justify-end pb-6 h-full">
+        <div className="text-center px-8 mb-3">
           <p
-            className="text-sm font-medium mb-1"
-            style={{ color: "var(--text-secondary)" }}
+            className="text-lg font-semibold mb-2"
+            style={{ color: "var(--text-primary)", letterSpacing: "-0.03em" }}
           >
-            Start a conversation
+            What are you building?
           </p>
-          <p className="text-2xs" style={{ color: "var(--text-tertiary)" }}>
+          <p
+            className="text-sm"
+            style={{ color: "var(--text-tertiary)", lineHeight: 1.6 }}
+          >
             Ask Claude to make changes, explore code, or help you build something.
           </p>
         </div>
@@ -57,7 +53,7 @@ export function ChatView({ sessionId }: Props) {
 
   return (
     <div ref={scrollRef} className="overflow-y-auto h-full">
-      <div className="max-w-3xl mx-auto py-4 px-6 space-y-4">
+      <div className="max-w-3xl mx-auto py-8 px-6 space-y-7">
         {messages.map((msg) =>
           msg.role === "user" ? (
             <UserMessage key={msg.id} message={msg} />
@@ -67,13 +63,15 @@ export function ChatView({ sessionId }: Props) {
         )}
 
         {session?.status === "running" && (
-          <div className="flex items-center gap-2 py-2">
-            <Loader2
-              size={14}
-              className="animate-spin"
-              style={{ color: "var(--accent)" }}
+          <div className="flex items-center gap-3 py-4">
+            <span
+              className="w-2.5 h-2.5 rounded-full animate-pulse-dot"
+              style={{ background: "var(--accent)" }}
             />
-            <span className="text-xs" style={{ color: "var(--text-secondary)" }}>
+            <span
+              className="text-sm"
+              style={{ color: "var(--text-secondary)" }}
+            >
               Claude is working...
             </span>
           </div>

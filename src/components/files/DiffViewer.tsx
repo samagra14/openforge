@@ -33,7 +33,7 @@ export function DiffViewer({ workspaceId }: Props) {
 
   if (loading) {
     return (
-      <div className="p-3 text-xs" style={{ color: "var(--text-tertiary)" }}>
+      <div className="p-4 text-sm" style={{ color: "var(--text-tertiary)" }}>
         Loading changes...
       </div>
     );
@@ -43,10 +43,10 @@ export function DiffViewer({ workspaceId }: Props) {
     return (
       <div className="h-full flex flex-col">
         <div
-          className="flex items-center gap-1 px-3 py-1.5 text-2xs"
+          className="flex items-center gap-2 px-4 py-2.5 text-xs"
           style={{
             borderBottom: "1px solid var(--border)",
-            color: "var(--text-secondary)",
+            color: "var(--text-tertiary)",
           }}
         >
           <button
@@ -54,30 +54,38 @@ export function DiffViewer({ workspaceId }: Props) {
               setSelectedPath(null);
               setDiffContent(null);
             }}
-            className="hover:underline"
+            className="hover-bg px-1.5 py-0.5 rounded-md transition-colors"
+            style={{ color: "var(--text-secondary)" }}
           >
             Changes
           </button>
-          <span>/</span>
+          <span style={{ opacity: 0.35 }}>/</span>
           <span style={{ color: "var(--text-primary)" }}>{selectedPath}</span>
         </div>
 
         <pre
-          className="flex-1 overflow-auto p-3 text-xs leading-relaxed"
+          className="flex-1 overflow-auto p-4 leading-relaxed"
           style={{
             background: "var(--code-bg)",
             fontFamily: '"SF Mono", "Menlo", monospace',
-            fontSize: 12,
+            fontSize: 13,
           }}
         >
           {diffContent.split("\n").map((line, i) => {
             let color = "var(--text-primary)";
-            if (line.startsWith("+")) color = "var(--success)";
-            else if (line.startsWith("-")) color = "var(--error)";
-            else if (line.startsWith("@@")) color = "var(--accent)";
+            let bg = "transparent";
+            if (line.startsWith("+")) {
+              color = "var(--success)";
+              bg = "var(--success-subtle)";
+            } else if (line.startsWith("-")) {
+              color = "var(--error)";
+              bg = "var(--error-subtle)";
+            } else if (line.startsWith("@@")) {
+              color = "var(--accent)";
+            }
 
             return (
-              <div key={i} style={{ color }}>
+              <div key={i} style={{ color, background: bg }}>
                 {line}
               </div>
             );
@@ -89,8 +97,8 @@ export function DiffViewer({ workspaceId }: Props) {
 
   if (entries.length === 0) {
     return (
-      <div className="p-4 text-center">
-        <p className="text-xs" style={{ color: "var(--text-tertiary)" }}>
+      <div className="p-5 text-center">
+        <p className="text-sm" style={{ color: "var(--text-tertiary)" }}>
           No changes detected.
         </p>
       </div>
@@ -100,11 +108,11 @@ export function DiffViewer({ workspaceId }: Props) {
   const statusIcon = (status: string) => {
     switch (status) {
       case "added":
-        return <FilePlus size={13} style={{ color: "var(--success)" }} />;
+        return <FilePlus size={14} style={{ color: "var(--success)" }} />;
       case "deleted":
-        return <FileX size={13} style={{ color: "var(--error)" }} />;
+        return <FileX size={14} style={{ color: "var(--error)" }} />;
       default:
-        return <FileEdit size={13} style={{ color: "var(--accent)" }} />;
+        return <FileEdit size={14} style={{ color: "var(--accent)" }} />;
     }
   };
 
@@ -117,7 +125,7 @@ export function DiffViewer({ workspaceId }: Props) {
           ? "var(--error)"
           : "var(--accent)";
     return (
-      <span className="text-2xs font-mono font-bold" style={{ color }}>
+      <span className="text-xs font-mono font-semibold" style={{ color }}>
         {letter}
       </span>
     );
@@ -129,7 +137,7 @@ export function DiffViewer({ workspaceId }: Props) {
         <button
           key={entry.path}
           onClick={() => handleClick(entry.path)}
-          className="w-full flex items-center gap-2 px-3 py-1 text-xs hover:bg-white/5"
+          className="w-full flex items-center gap-2.5 px-4 py-2 text-sm hover-bg transition-colors"
           style={{
             color:
               entry.path === selectedPath
@@ -138,7 +146,9 @@ export function DiffViewer({ workspaceId }: Props) {
           }}
         >
           {statusIcon(entry.status)}
-          <span className="truncate flex-1 text-left">{entry.path}</span>
+          <span className="truncate flex-1 text-left" style={{ letterSpacing: "-0.01em" }}>
+            {entry.path}
+          </span>
           {statusBadge(entry.status)}
         </button>
       ))}

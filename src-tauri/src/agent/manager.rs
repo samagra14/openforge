@@ -212,8 +212,8 @@ impl AgentManager {
                     }
 
                     StreamEvent::User { message: user_msg } => {
-                        // User events contain tool results — store them so
-                        // the next assistant snapshot picks them up.
+                        // User events contain tool results — store them and
+                        // update current_tool_calls so the frontend sees outputs.
                         for block in &user_msg.content {
                             match block {
                                 UserContentBlock::ToolResult {
@@ -267,8 +267,7 @@ impl AgentManager {
                         content,
                         is_error,
                     } => {
-                        // Store the tool output so we can attach it when the
-                        // next assistant snapshot includes this tool_use_id.
+                        // Store the tool output for future assistant snapshots.
                         let output_str = match &content {
                             Some(serde_json::Value::String(s)) => Some(s.clone()),
                             Some(v) => Some(v.to_string()),
