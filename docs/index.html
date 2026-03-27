@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OpenForge — Open-Source Git Worktrees + Claude Code for macOS</title>
+  <meta name="description" content="OpenForge is a free, MIT-licensed macOS app that gives each coding task its own git worktree and Claude Code session. No telemetry, no accounts, no lock-in.">
+  <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #faf9f6;
+      --bg-secondary: #f4f3ef;
+      --bg-tertiary: #eceae5;
+      --bg-elevated: #ffffff;
+      --text-primary: #1a1916;
+      --text-secondary: #6e6b65;
+      --text-tertiary: #a09d97;
+      --accent: #9c8b6e;
+      --accent-hover: #8a7a60;
+      --accent-subtle: rgba(156, 139, 110, 0.14);
+      --accent-dim: #b3a48c;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.15);
+      --code-bg: #eceae5;
+      --hover: rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 3px 10px rgba(0, 0, 0, 0.07);
+      --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.10);
+      --success: #5f8a66;
+      --error: #b8645e;
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'DM Mono', 'SF Mono', 'Menlo', monospace;
+      --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --radius: 10px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #0c0c0d;
+        --bg-secondary: #111112;
+        --bg-tertiary: #18181a;
+        --bg-elevated: #1c1c1e;
+        --text-primary: #e8e6e1;
+        --text-secondary: #8a8884;
+        --text-tertiary: #5a5856;
+        --accent: #c4b398;
+        --accent-hover: #d4c3a8;
+        --accent-subtle: rgba(196, 179, 152, 0.12);
+        --accent-dim: #a09280;
+        --border: rgba(255, 255, 255, 0.07);
+        --border-strong: rgba(255, 255, 255, 0.14);
+        --code-bg: #0e0e10;
+        --hover: rgba(255, 255, 255, 0.04);
+        --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.30);
+        --shadow-md: 0 3px 10px rgba(0, 0, 0, 0.40);
+        --shadow-lg: 0 8px 30px rgba(0, 0, 0, 0.55);
+        --success: #7da383;
+        --error: #c47a73;
+      }
+    }
+
+    ::selection {
+      background: var(--accent-subtle);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 14px 0;
+      background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .forge-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 16px;
+      color: white;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .forge-mark { color: #0c0c0d; }
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+      letter-spacing: 0;
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      letter-spacing: -0.005em;
+    }
+
+    .btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.85;
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text-primary);
+      border: 1px solid var(--border-strong);
+    }
+
+    .btn-secondary:hover {
+      background: var(--hover);
+      border-color: var(--text-tertiary);
+    }
+
+    .btn-accent {
+      background: var(--accent);
+      color: white;
+      box-shadow: var(--shadow-sm);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .btn-accent { color: #0c0c0d; }
+    }
+
+    .btn-accent:hover {
+      background: var(--accent-hover);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 160px 0 80px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 5px 14px 5px 10px;
+      border-radius: 100px;
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 36px;
+      letter-spacing: 0.02em;
+    }
+
+    .hero-badge .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    .hero h1 {
+      font-family: var(--font-display);
+      font-size: clamp(44px, 6.5vw, 72px);
+      line-height: 1.08;
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      max-width: 720px;
+      margin: 0 auto 24px;
+    }
+
+    .hero h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .hero-sub {
+      font-size: 17px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin: 0 auto 40px;
+      letter-spacing: -0.005em;
+    }
+
+    .hero-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .hero-meta {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      margin-top: 20px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      letter-spacing: 0.01em;
+    }
+
+    .hero-meta span { display: flex; align-items: center; gap: 5px; }
+    .hero-meta svg { width: 13px; height: 13px; opacity: 0.5; }
+
+    /* ─── APP WINDOW ─── */
+    .showcase {
+      padding: 20px 0 100px;
+    }
+
+    .window {
+      max-width: 960px;
+      margin: 0 auto;
+      border-radius: 12px;
+      border: 1px solid var(--border-strong);
+      background: var(--bg-elevated);
+      overflow: hidden;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .window-bar {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 13px 16px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .window-bar .wd, .window-bar .wy, .window-bar .wg {
+      width: 11px; height: 11px; border-radius: 50%;
+    }
+    .window-bar .wd { background: #ff5f57; }
+    .window-bar .wy { background: #febc2e; }
+    .window-bar .wg { background: #28c840; }
+    .window-bar .title {
+      flex: 1;
+      text-align: center;
+      font-size: 11px;
+      color: var(--text-tertiary);
+      margin-right: 48px;
+      font-family: var(--font-body);
+    }
+
+    .window-body {
+      display: grid;
+      grid-template-columns: 190px 1fr 260px;
+      min-height: 340px;
+    }
+
+    .w-sidebar {
+      border-right: 1px solid var(--border);
+      padding: 14px 10px;
+    }
+
+    .w-sidebar-label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--text-tertiary);
+      padding: 0 8px;
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+
+    .w-item {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 8px;
+      border-radius: 7px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-bottom: 1px;
+      font-family: var(--font-body);
+    }
+
+    .w-item.active {
+      background: var(--accent-subtle);
+      color: var(--text-primary);
+    }
+
+    .w-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .w-avatar { color: #0c0c0d; }
+    }
+
+    .w-chat {
+      padding: 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .msg { display: flex; flex-direction: column; gap: 5px; }
+
+    .msg-role {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .msg-role.user { color: var(--accent); }
+    .msg-role.asst { color: var(--text-tertiary); }
+
+    .msg-body {
+      font-size: 12px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+      padding: 10px 13px;
+      background: var(--bg-secondary);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      font-family: var(--font-body);
+    }
+
+    .msg-body code {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: var(--font-mono);
+    }
+
+    .w-panel {
+      border-left: 1px solid var(--border);
+      padding: 14px;
+    }
+
+    .w-tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .w-tab {
+      font-size: 10px;
+      padding: 7px 10px;
+      color: var(--text-tertiary);
+      border-bottom: 1.5px solid transparent;
+      margin-bottom: -1px;
+      font-weight: 500;
+      letter-spacing: 0.01em;
+    }
+
+    .w-tab.active {
+      color: var(--text-primary);
+      border-bottom-color: var(--accent);
+    }
+
+    .diff-file {
+      font-size: 11px;
+      color: var(--text-secondary);
+      padding: 5px 0;
+      margin-bottom: 3px;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--font-mono);
+    }
+
+    .dl {
+      font-size: 11px;
+      padding: 2px 6px;
+      font-family: var(--font-mono);
+      border-radius: 3px;
+      margin-bottom: 1px;
+      line-height: 1.6;
+    }
+
+    .dl-add { background: rgba(95, 138, 102, 0.08); color: var(--success); }
+    .dl-rm { background: rgba(184, 100, 94, 0.08); color: var(--error); }
+    .dl-ctx { color: var(--text-tertiary); }
+
+    /* ─── SECTIONS ─── */
+    section { padding: 100px 0; }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      margin-bottom: 16px;
+      font-weight: 500;
+    }
+
+    .section-title {
+      font-family: var(--font-display);
+      font-size: clamp(30px, 4vw, 44px);
+      font-weight: 400;
+      line-height: 1.12;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-desc {
+      font-size: 16px;
+      line-height: 1.7;
+      color: var(--text-secondary);
+      max-width: 480px;
+      margin-bottom: 56px;
+    }
+
+    /* ─── HOW IT WORKS ─── */
+    .steps {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .step {
+      padding: 32px 28px;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .step:hover {
+      border-color: var(--border-strong);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-2px);
+    }
+
+    .step-num {
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 40px;
+      color: var(--accent);
+      opacity: 0.4;
+      line-height: 1;
+      margin-bottom: 20px;
+    }
+
+    .step h3 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.015em;
+    }
+
+    .step p {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+
+    /* ─── FEATURES ─── */
+    .features-section { border-top: 1px solid var(--border); }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+    }
+
+    .feat {
+      padding: 32px 28px;
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      transition: all 0.3s var(--ease-out);
+    }
+
+    .feat:hover {
+      border-color: var(--border-strong);
+    }
+
+    .feat-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--accent-subtle);
+      border: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 18px;
+      color: var(--accent);
+    }
+
+    .feat-icon svg { width: 18px; height: 18px; }
+
+    .feat h3 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 8px;
+      letter-spacing: -0.015em;
+    }
+
+    .feat p {
+      font-size: 13px;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+
+    /* ─── OPEN SOURCE ─── */
+    .oss-section { border-top: 1px solid var(--border); }
+
+    .oss-block {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 56px;
+      align-items: center;
+    }
+
+    .oss-content .section-title em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .oss-stats {
+      display: flex;
+      gap: 36px;
+      margin-bottom: 32px;
+    }
+
+    .oss-stat-value {
+      font-family: var(--font-display);
+      font-size: 28px;
+      color: var(--accent);
+    }
+
+    .oss-stat-label {
+      font-size: 11px;
+      color: var(--text-tertiary);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-top: 2px;
+      font-weight: 500;
+    }
+
+    .term-block {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .term-header {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      padding: 12px 16px;
+      background: var(--bg-tertiary);
+      border-bottom: 1px solid var(--border);
+      font-size: 11px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+    }
+
+    .term-header svg { width: 13px; height: 13px; opacity: 0.5; }
+
+    .term-body {
+      padding: 18px 20px;
+      font-family: var(--font-mono);
+      font-size: 12.5px;
+      line-height: 1.85;
+      color: var(--text-secondary);
+    }
+
+    .term-body .c { color: var(--text-tertiary); }
+    .term-body .p { color: var(--accent); }
+    .term-body .s { color: var(--success); }
+
+    /* ─── OSS CHECKLIST ─── */
+    .oss-checklist {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .oss-checklist li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+    }
+
+    .oss-checklist li .check {
+      flex-shrink: 0;
+      width: 20px;
+      height: 20px;
+      border-radius: 5px;
+      background: var(--accent-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-top: 1px;
+    }
+
+    .oss-checklist li .check svg {
+      width: 12px;
+      height: 12px;
+      color: var(--accent);
+    }
+
+    .oss-checklist li strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    /* ─── CTA ─── */
+    .cta-section {
+      padding: 120px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+    }
+
+    .cta-section .section-title {
+      max-width: 500px;
+      margin: 0 auto 16px;
+    }
+
+    .cta-section .section-desc {
+      max-width: 420px;
+      margin: 0 auto 36px;
+      text-align: center;
+    }
+
+    .cta-actions {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .footer-logo {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .footer-links a { transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    .footer-right {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ─── SCROLL REVEALS ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-d1 { transition-delay: 0.08s; }
+    .reveal-d2 { transition-delay: 0.16s; }
+    .reveal-d3 { transition-delay: 0.24s; }
+    .reveal-d4 { transition-delay: 0.32s; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .steps { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr; }
+      .oss-block { grid-template-columns: 1fr; gap: 36px; }
+      .window-body { grid-template-columns: 1fr; }
+      .w-sidebar, .w-panel { display: none; }
+    }
+
+    @media (max-width: 640px) {
+      .hero { padding: 130px 0 56px; }
+      .hero-actions { flex-direction: column; }
+      .nav-links a.nav-hide { display: none; }
+      .cta-actions { flex-direction: column; }
+      footer .container { flex-direction: column; gap: 16px; text-align: center; }
+      .footer-left { flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <div class="container">
+      <a href="#" class="nav-logo">
+        <div class="forge-mark">O</div>
+        OpenForge
+      </a>
+      <div class="nav-links">
+        <a href="#how-it-works" class="nav-hide">How It Works</a>
+        <a href="#features" class="nav-hide">Features</a>
+        <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" style="vertical-align: -2px; margin-right: 3px;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          GitHub
+        </a>
+        <a href="#download" class="btn btn-primary" style="padding: 7px 16px; font-size: 12px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-badge reveal">
+        <span class="dot"></span>
+        Free &amp; open-source &mdash; macOS
+      </div>
+      <h1 class="reveal reveal-d1">Every task gets its own <em>worktree</em> and its own <em>Claude.</em></h1>
+      <p class="hero-sub reveal reveal-d2">
+        OpenForge gives each task an isolated git worktree and a dedicated Claude Code session.
+        Always open-source. Always free.
+      </p>
+      <div class="hero-actions reveal reveal-d3">
+        <a href="https://github.com/samagra14/openforge/releases/latest/download/OpenForge_0.1.0_aarch64.dmg" class="btn btn-accent">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download for macOS
+        </a>
+        <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener" class="btn btn-secondary">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          View on GitHub
+        </a>
+      </div>
+      <div class="hero-meta reveal reveal-d4">
+        <span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          macOS 12+
+        </span>
+        <span>Apple Silicon &amp; Intel</span>
+        <span>MIT License</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- APP MOCKUP -->
+  <div class="showcase">
+    <div class="container">
+      <div class="window reveal">
+        <div class="window-bar">
+          <div class="wd"></div>
+          <div class="wy"></div>
+          <div class="wg"></div>
+          <span class="title">OpenForge &mdash; 3 worktrees active</span>
+        </div>
+        <div class="window-body">
+          <div class="w-sidebar">
+            <div class="w-sidebar-label">Workspaces</div>
+            <div class="w-item active">
+              <div class="w-avatar" style="background: var(--accent);">H</div>
+              hanoi
+            </div>
+            <div class="w-item">
+              <div class="w-avatar" style="background: #7a8f9c;">K</div>
+              kyoto
+            </div>
+            <div class="w-item">
+              <div class="w-avatar" style="background: #7da383;">R</div>
+              rio-de-janeiro
+            </div>
+            <div class="w-item">
+              <div class="w-avatar" style="background: #a08ca0;">M</div>
+              marrakech
+            </div>
+          </div>
+
+          <div class="w-chat">
+            <div class="msg">
+              <span class="msg-role user">You</span>
+              <div class="msg-body">Add a dark mode toggle to the settings page. Use the existing theme context.</div>
+            </div>
+            <div class="msg">
+              <span class="msg-role asst">Claude</span>
+              <div class="msg-body">
+                I'll add the toggle. Let me check <code>src/contexts/theme.tsx</code> and the settings layout first.<br><br>
+                Done &mdash; created the toggle component and wired it in. Changes across 3 files. Want me to run tests?
+              </div>
+            </div>
+          </div>
+
+          <div class="w-panel">
+            <div class="w-tabs">
+              <div class="w-tab active">Changes</div>
+              <div class="w-tab">All Files</div>
+              <div class="w-tab">Terminal</div>
+            </div>
+            <div class="diff-file">src/components/ThemeToggle.tsx</div>
+            <div class="dl dl-add">+ export function ThemeToggle() {</div>
+            <div class="dl dl-add">+   const { theme, set } = useTheme();</div>
+            <div class="dl dl-add">+   return &lt;Switch checked={...} /&gt;;</div>
+            <div class="dl dl-add">+ }</div>
+            <div style="height: 10px;"></div>
+            <div class="diff-file">src/pages/Settings.tsx</div>
+            <div class="dl dl-ctx">&nbsp; &lt;SettingsSection title="Appearance"&gt;</div>
+            <div class="dl dl-add">+   &lt;ThemeToggle /&gt;</div>
+            <div class="dl dl-ctx">&nbsp; &lt;/SettingsSection&gt;</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- HOW IT WORKS -->
+  <section id="how-it-works">
+    <div class="container">
+      <p class="section-label reveal">How It Works</p>
+      <h2 class="section-title reveal reveal-d1">Repo in. Worktrees out. Code done.</h2>
+      <p class="section-desc reveal reveal-d2">Each task lives in its own branch and directory. Nothing touches your working tree.</p>
+      <div class="steps">
+        <div class="step reveal">
+          <div class="step-num">1</div>
+          <h3>Point it at a repo</h3>
+          <p>Select any local git repo. Branches and remotes are picked up automatically.</p>
+        </div>
+        <div class="step reveal reveal-d1">
+          <div class="step-num">2</div>
+          <h3>Branch off a worktree</h3>
+          <p>Hit &#8984;N and OpenForge creates a fresh <code>git worktree</code> on its own branch. Describe what you want built.</p>
+        </div>
+        <div class="step reveal reveal-d2">
+          <div class="step-num">3</div>
+          <h3>Let Claude work, then merge</h3>
+          <p>Review the diff, browse files, revert if needed. Merge when you're happy.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features" class="features-section">
+    <div class="container">
+      <p class="section-label reveal">Features</p>
+      <h2 class="section-title reveal reveal-d1">Git worktrees meet Claude Code.</h2>
+      <p class="section-desc reveal reveal-d2">See every change, in every branch, as it happens.</p>
+      <div class="features-grid">
+        <div class="feat reveal">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 22h2a2 2 0 0 0 2-2V7l-5-5H8a2 2 0 0 0-2 2v3"/><path d="M14 2v5h5"/><path d="M4 14.5A2.5 2.5 0 0 1 6.5 12H8"/><path d="M4 19.5A2.5 2.5 0 0 0 6.5 22H8"/><path d="M4 14.5v5"/><path d="M8 12v10"/></svg>
+          </div>
+          <h3>Real git worktrees</h3>
+          <p>Not simulated sandboxes &mdash; actual <code>git worktree</code> directories, each on its own branch. Your main branch stays clean.</p>
+        </div>
+        <div class="feat reveal reveal-d1">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <h3>Many Claudes, many branches</h3>
+          <p>Each worktree gets its own Claude Code session with full multi-turn history. Five features at once, zero context switching.</p>
+        </div>
+        <div class="feat reveal reveal-d2">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+          </div>
+          <h3>Git-backed undo</h3>
+          <p>Before every prompt, OpenForge snapshots the worktree as a git ref. One click rolls back to any previous state.</p>
+        </div>
+        <div class="feat reveal reveal-d3">
+          <div class="feat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"/><path d="M5 12h14"/><rect x="2" y="3" width="20" height="18" rx="2"/></svg>
+          </div>
+          <h3>Diff, files, and terminal</h3>
+          <p>The right panel shows a live diff against the base branch, a full file tree, and an integrated terminal &mdash; all per worktree.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPEN SOURCE -->
+  <section id="open-source" class="oss-section">
+    <div class="container">
+      <div class="oss-block">
+        <div class="oss-content">
+          <p class="section-label reveal">Open Source</p>
+          <h2 class="section-title reveal reveal-d1">Read every line.<br><em>Change anything.</em></h2>
+          <p class="section-desc reveal reveal-d2" style="margin-bottom: 32px;">
+            Not open-core. Not freemium. The whole thing is MIT licensed.
+          </p>
+          <ul class="oss-checklist reveal reveal-d3">
+            <li>
+              <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span><strong>MIT license</strong> &mdash; use it commercially, modify it, distribute it. No strings.</span>
+            </li>
+            <li>
+              <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span><strong>No telemetry</strong> &mdash; zero analytics, zero tracking, zero phone-home.</span>
+            </li>
+            <li>
+              <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span><strong>No account required</strong> &mdash; download, open, use. That's it.</span>
+            </li>
+            <li>
+              <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span><strong>Build from source</strong> &mdash; four commands and you have your own binary.</span>
+            </li>
+            <li>
+              <span class="check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+              <span><strong>Contribute</strong> &mdash; fix a bug, add a feature, open a PR. The code is yours too.</span>
+            </li>
+          </ul>
+          <div class="reveal reveal-d4">
+            <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener" class="btn btn-secondary">
+              <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+              View source on GitHub
+            </a>
+          </div>
+        </div>
+
+        <div class="oss-visual reveal reveal-d2">
+          <div class="term-block">
+            <div class="term-header">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/></svg>
+              terminal
+            </div>
+            <div class="term-body">
+              <span class="c"># Build from source in 4 commands</span><br>
+              <span class="p">$</span> git clone https://github.com/samagra14/openforge.git<br>
+              <span class="p">$</span> cd openforge<br>
+              <span class="p">$</span> npm install<br>
+              <span class="p">$</span> npm run tauri build<br>
+              <span class="s">&#10003; Done. Your binary, your machine.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- DOWNLOAD CTA -->
+  <section id="download" class="cta-section">
+    <div class="container">
+      <p class="section-label reveal">Download</p>
+      <h2 class="section-title reveal reveal-d1">Try it now.</h2>
+      <p class="section-desc reveal reveal-d2">
+        Download the .dmg, open it, point it at a repo, and let Claude start writing code in its own worktree.
+      </p>
+      <div class="cta-actions reveal reveal-d3">
+        <a href="https://github.com/samagra14/openforge/releases/latest/download/OpenForge_0.1.0_aarch64.dmg" class="btn btn-accent" style="padding: 12px 24px; font-size: 14px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download .dmg for macOS
+        </a>
+        <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener" class="btn btn-secondary" style="padding: 12px 24px; font-size: 14px;">
+          Build from source
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-left">
+        <span class="footer-logo">OpenForge</span>
+        <div class="footer-links">
+          <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/samagra14/openforge/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/samagra14/openforge/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="https://github.com/samagra14/openforge/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        </div>
+      </div>
+      <div class="footer-right">&copy; 2026 OpenForge Contributors</div>
+    </div>
+  </footer>
+
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+
+</body>
+</html>
