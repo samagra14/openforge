@@ -248,6 +248,15 @@ pub fn list_messages(conn: &Connection, session_id: &str) -> Result<Vec<Message>
     rows.collect()
 }
 
+pub fn get_workspace_last_activity(conn: &Connection, workspace_id: &str) -> Result<Option<String>> {
+    let mut stmt = conn.prepare(
+        "SELECT MAX(m.timestamp) FROM messages m
+         INNER JOIN sessions s ON m.session_id = s.id
+         WHERE s.workspace_id = ?1",
+    )?;
+    stmt.query_row(params![workspace_id], |row| row.get(0))
+}
+
 pub fn delete_messages_after(conn: &Connection, session_id: &str, timestamp: &str) -> Result<()> {
     conn.execute(
         "DELETE FROM messages WHERE session_id = ?1 AND timestamp > ?2",

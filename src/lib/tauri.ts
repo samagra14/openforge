@@ -57,6 +57,14 @@ export interface ScriptExitPayload {
   exit_code: number;
 }
 
+export interface WorkspaceStatusInfo {
+  session_status: "running" | "idle" | "new";
+  lines_added: number;
+  lines_removed: number;
+  files_changed: number;
+  last_activity: string | null;
+}
+
 // --- Commands ---
 
 // NOTE: Tauri 2 defaults to rename_all = "camelCase" for command params.
@@ -77,6 +85,8 @@ export const commands = {
     invoke<Workspace[]>("list_workspaces", { repoId }),
   archiveWorkspace: (id: string) => invoke("archive_workspace", { id }),
   restoreWorkspace: (id: string) => invoke("restore_workspace", { id }),
+  getWorkspaceStatus: (workspaceId: string) =>
+    invoke<WorkspaceStatusInfo>("get_workspace_status", { workspaceId }),
 
   createSession: (workspaceId: string, model: string) =>
     invoke<Session>("create_session", { workspaceId, model }),

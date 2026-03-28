@@ -1,4 +1,7 @@
+import { useState, useRef, useCallback } from "react";
 import { useWorkspaceStore, type Workspace } from "../../stores/workspace";
+import { commands } from "../../lib/tauri";
+import { WorkspaceHoverCard } from "./WorkspaceHoverCard";
 
 interface Props {
   workspaces: Workspace[];
@@ -7,6 +10,47 @@ interface Props {
 export function WorkspaceList({ workspaces }: Props) {
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
   const setActiveWorkspace = useWorkspaceStore((s) => s.setActiveWorkspace);
+  const removeWorkspace = useWorkspaceStore((s) => s.removeWorkspace);
+
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+  const [anchorRect, setAnchorRect] = useState<DOMRect | null>(null);
+  const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const leaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showCard = useCallback((id: string, el: HTMLElement) => {
+    if (leaveTimerRef.current) {
+      clearTimeout(leaveTimerRef.current);
+      leaveTimerRef.current = null;
+    }
+    hoverTimerRef.current = setTimeout(() => {
+      setHoveredId(id);
+      setAnchorRect(el.getBoundingClientRect());
+    }, 400);
+  }, []);
+
+  const hideCard = useCallback(() => {
+    if (hoverTimerRef.current) {
+      clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = null;
+    }
+    leaveTimerRef.current = setTimeout(() => {
+      setHoveredId(null);
+      setAnchorRect(null);
+    }, 200);
+  }, []);
+
+  const handleArchive = useCallback(
+    async (ws: Workspace) => {
+      try {
+        await commands.archiveWorkspace(ws.id);
+        removeWorkspace(ws.id);
+        setHoveredId(null);
+      } catch (e) {
+        console.error("Failed to archive:", e);
+      }
+    },
+    [removeWorkspace]
+  );
 
   if (workspaces.length === 0) {
     return (
@@ -19,6 +63,8 @@ export function WorkspaceList({ workspaces }: Props) {
     );
   }
 
+  const hoveredWorkspace = workspaces.find((ws) => ws.id === hoveredId);
+
   return (
     <div className="space-y-0.5 py-1">
       {workspaces.map((ws, index) => {
@@ -28,6 +74,8 @@ export function WorkspaceList({ workspaces }: Props) {
           <button
             key={ws.id}
             onClick={() => setActiveWorkspace(ws.id)}
+            onMouseEnter={(e) => showCard(ws.id, e.currentTarget)}
+            onMouseLeave={hideCard}
             className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm hover-bg transition-colors"
             style={{
               background: isActive ? "var(--bg-tertiary)" : "transparent",
@@ -67,6 +115,25 @@ export function WorkspaceList({ workspaces }: Props) {
           </button>
         );
       })}
+
+      {hoveredWorkspace && (
+        <WorkspaceHoverCard
+          workspace={hoveredWorkspace}
+          anchorRect={anchorRect}
+          onArchive={() => handleArchive(hoveredWorkspace)}
+          onContinue={() => {
+            setActiveWorkspace(hoveredWorkspace.id);
+            setHoveredId(null);
+          }}
+          onMouseEnter={() => {
+            if (leaveTimerRef.current) {
+              clearTimeout(leaveTimerRef.current);
+              leaveTimerRef.current = null;
+            }
+          }}
+          onMouseLeave={hideCard}
+        />
+      )}
     </div>
   );
 }

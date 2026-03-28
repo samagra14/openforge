@@ -1,0 +1,189 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <clipPath id="sq">
+      <rect width="1024" height="1024" rx="228" ry="228"/>
+    </clipPath>
+
+    <!-- Deep black background with subtle warmth -->
+    <radialGradient id="bg" cx="0.5" cy="0.46" r="0.7">
+      <stop offset="0%" stop-color="#141414"/>
+      <stop offset="100%" stop-color="#080808"/>
+    </radialGradient>
+
+    <!-- Subtle light bloom behind the anvil -->
+    <radialGradient id="bloom" cx="0.5" cy="0.52" r="0.30">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Platinum anvil face -->
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f0f0f0"/>
+      <stop offset="20%" stop-color="#d4d4d4"/>
+      <stop offset="50%" stop-color="#a8a8a8"/>
+      <stop offset="80%" stop-color="#d0d0d0"/>
+      <stop offset="100%" stop-color="#909090"/>
+    </linearGradient>
+
+    <!-- Anvil body: darker silver -->
+    <linearGradient id="body" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#a0a0a0"/>
+      <stop offset="50%" stop-color="#707070"/>
+      <stop offset="100%" stop-color="#505050"/>
+    </linearGradient>
+
+    <!-- Anvil base -->
+    <linearGradient id="base" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#808080"/>
+      <stop offset="100%" stop-color="#404040"/>
+    </linearGradient>
+
+    <!-- Beam gradients — white light columns -->
+    <linearGradient id="beam-l" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#e0e0e0" stop-opacity="0.6"/>
+      <stop offset="75%" stop-color="#cccccc" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam-c" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="1"/>
+      <stop offset="35%" stop-color="#f0f0f0" stop-opacity="0.7"/>
+      <stop offset="70%" stop-color="#e0e0e0" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam-r" x1="0.5" y1="1" x2="0.5" y2="0">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="40%" stop-color="#e0e0e0" stop-opacity="0.6"/>
+      <stop offset="75%" stop-color="#cccccc" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Beam halos -->
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="halo-c" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Surface glow -->
+    <radialGradient id="surface-glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4"/>
+      <stop offset="40%" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Filters -->
+    <filter id="g4" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="4"/>
+    </filter>
+    <filter id="g12" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="12"/>
+    </filter>
+    <filter id="g24" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="24"/>
+    </filter>
+    <filter id="g40" x="-100%" y="-100%" width="300%" height="300%">
+      <feGaussianBlur stdDeviation="40"/>
+    </filter>
+
+    <!-- Noise -->
+    <filter id="noise" x="0" y="0" width="100%" height="100%">
+      <feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="3" stitchTiles="stitch" result="n"/>
+      <feColorMatrix type="saturate" values="0" in="n" result="ng"/>
+      <feBlend in="SourceGraphic" in2="ng" mode="multiply"/>
+    </filter>
+  </defs>
+
+  <g clip-path="url(#sq)">
+    <!-- Background -->
+    <rect width="1024" height="1024" fill="url(#bg)"/>
+    <rect width="1024" height="1024" fill="#111" opacity="0.12" filter="url(#noise)"/>
+
+    <!-- Bloom -->
+    <rect width="1024" height="1024" fill="url(#bloom)"/>
+
+    <!-- Floor reflection -->
+    <ellipse cx="512" cy="740" rx="300" ry="40" fill="#ffffff" opacity="0.025" filter="url(#g24)"/>
+
+    <!-- === BEAMS === -->
+
+    <!-- Left beam -->
+    <ellipse cx="390" cy="330" rx="50" ry="170" fill="url(#halo)" opacity="0.3" filter="url(#g24)"/>
+    <rect x="382" y="195" width="16" height="320" rx="8" fill="url(#beam-l)"/>
+    <rect x="386" y="215" width="8" height="280" rx="4" fill="#ffffff" opacity="0.2"/>
+
+    <!-- Center beam -->
+    <ellipse cx="512" cy="290" rx="55" ry="210" fill="url(#halo-c)" opacity="0.35" filter="url(#g24)"/>
+    <rect x="500" y="135" width="24" height="380" rx="12" fill="url(#beam-c)"/>
+    <rect x="506" y="155" width="12" height="340" rx="6" fill="#ffffff" opacity="0.25"/>
+
+    <!-- Right beam -->
+    <ellipse cx="634" cy="330" rx="50" ry="170" fill="url(#halo)" opacity="0.3" filter="url(#g24)"/>
+    <rect x="626" y="195" width="16" height="320" rx="8" fill="url(#beam-r)"/>
+    <rect x="630" y="215" width="8" height="280" rx="4" fill="#ffffff" opacity="0.2"/>
+
+    <!-- Beam tips -->
+    <circle cx="390" cy="195" r="12" fill="#fff" opacity="0.5" filter="url(#g12)"/>
+    <circle cx="390" cy="195" r="4" fill="#fff" opacity="0.85"/>
+    <circle cx="512" cy="135" r="16" fill="#fff" opacity="0.6" filter="url(#g12)"/>
+    <circle cx="512" cy="135" r="5.5" fill="#fff" opacity="0.95"/>
+    <circle cx="634" cy="195" r="12" fill="#fff" opacity="0.5" filter="url(#g12)"/>
+    <circle cx="634" cy="195" r="4" fill="#fff" opacity="0.85"/>
+
+    <!-- === ANVIL === -->
+    <g transform="translate(512, 570)">
+      <!-- Shadow -->
+      <ellipse cx="0" cy="168" rx="190" ry="25" fill="#000" opacity="0.5" filter="url(#g12)"/>
+
+      <!-- Base -->
+      <path d="M-105 100 L-115 150 Q-115 163 -100 163 L100 163 Q115 163 115 150 L105 100Z" fill="url(#base)"/>
+      <path d="M-103 102 L103 102" stroke="#999" stroke-width="0.8" opacity="0.3"/>
+
+      <!-- Waist -->
+      <path d="M-70 100 L-82 20 Q-85 5 -72 0 L72 0 Q85 5 82 20 L70 100Z" fill="url(#body)"/>
+      <path d="M-69 98 L-81 22" stroke="#bbb" stroke-width="0.8" opacity="0.2"/>
+      <path d="M69 98 L81 22" stroke="#bbb" stroke-width="0.8" opacity="0.2"/>
+
+      <!-- Face -->
+      <path d="M-195 0 L-183 -42 Q-179 -55 -165 -55 L165 -55 Q179 -55 183 -42 L195 0 Q197 8 187 10 L-187 10 Q-197 8 -195 0Z" fill="url(#face)"/>
+
+      <!-- Face top highlight -->
+      <path d="M-180 -50 Q-175 -53 -165 -53 L165 -53 Q175 -53 180 -50" stroke="#fff" stroke-width="1.5" fill="none" opacity="0.5"/>
+
+      <!-- Face bottom edge -->
+      <path d="M-187 8 L187 8" stroke="#404040" stroke-width="1.2" opacity="0.5"/>
+
+      <!-- Horn -->
+      <path d="M-195 0 L-195 -8 Q-195 -35 -215 -38 L-280 -30 Q-300 -26 -300 -16 L-300 -8 Q-300 2 -280 2 L-195 0Z" fill="url(#face)"/>
+      <path d="M-205 -34 L-278 -28" stroke="#fff" stroke-width="1" opacity="0.2"/>
+
+      <!-- Surface glow -->
+      <ellipse cx="0" cy="-22" rx="130" ry="25" fill="url(#surface-glow)"/>
+
+      <!-- Specular -->
+      <ellipse cx="-30" cy="-32" rx="55" ry="7" fill="#fff" opacity="0.08"/>
+      <ellipse cx="45" cy="-28" rx="35" ry="5" fill="#fff" opacity="0.06"/>
+    </g>
+
+    <!-- === PARTICLES === -->
+    <circle cx="350" cy="310" r="2.5" fill="#fff" opacity="0.4" filter="url(#g4)"/>
+    <circle cx="350" cy="310" r="1.2" fill="#fff" opacity="0.7"/>
+    <circle cx="680" cy="290" r="2" fill="#fff" opacity="0.35" filter="url(#g4)"/>
+    <circle cx="680" cy="290" r="1" fill="#fff" opacity="0.6"/>
+    <circle cx="440" cy="260" r="1.8" fill="#fff" opacity="0.3" filter="url(#g4)"/>
+    <circle cx="440" cy="260" r="0.8" fill="#fff" opacity="0.6"/>
+    <circle cx="590" cy="245" r="1.8" fill="#fff" opacity="0.3" filter="url(#g4)"/>
+    <circle cx="590" cy="245" r="0.8" fill="#fff" opacity="0.6"/>
+    <circle cx="460" cy="380" r="1.5" fill="#fff" opacity="0.2" filter="url(#g4)"/>
+    <circle cx="565" cy="365" r="1.2" fill="#fff" opacity="0.2" filter="url(#g4)"/>
+    <circle cx="320" cy="395" r="1.2" fill="#fff" opacity="0.15" filter="url(#g4)"/>
+    <circle cx="710" cy="375" r="1.5" fill="#fff" opacity="0.15" filter="url(#g4)"/>
+
+    <!-- Inner border -->
+    <rect x="6" y="6" width="1012" height="1012" rx="224" ry="224" fill="none" stroke="#ffffff" stroke-width="1" opacity="0.08"/>
+  </g>
+</svg>

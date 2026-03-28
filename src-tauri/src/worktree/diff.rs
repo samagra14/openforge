@@ -8,6 +8,13 @@ pub struct DiffEntry {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DiffStats {
+    pub files_changed: i64,
+    pub lines_added: i64,
+    pub lines_removed: i64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileEntry {
     pub name: String,
     pub path: String,
@@ -63,6 +70,52 @@ pub fn get_file_diff(worktree_path: &str, base_branch: &str, file_path: &str) ->
         .map_err(|e| format!("Failed to run git diff: {e}"))?;
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+/// Get diff stats (files changed, lines added/removed) compared to the base branch.
+pub fn get_diff_stats(worktree_path: &str, base_branch: &str) -> Result<DiffStats, String> {
+    let output = Command::new("git")
+        .args(["diff", &format!("{base_branch}..HEAD"), "--shortstat"])
+        .current_dir(worktree_path)
+        .output()
+        .map_err(|e| format!("Failed to run git diff --shortstat: {e}"))?;
+
+    if !output.status.success() {
+        return Ok(DiffStats {
+            files_changed: 0,
+            lines_added: 0,
+            lines_removed: 0,
+        });
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+    // Parse: " 5 files changed, 189 insertions(+), 22 deletions(-)"
+    let mut files = 0i64;
+    let mut added = 0i64;
+    let mut removed = 0i64;
+
+    for part in stdout.split(',') {
+        let part = part.trim();
+        if part.contains("file") {
+            if let Some(n) = part.split_whitespace().next().and_then(|s| s.parse::<i64>().ok()) {
+                files = n;
+            }
+        } else if part.contains("insertion") {
+            if let Some(n) = part.split_whitespace().next().and_then(|s| s.parse::<i64>().ok()) {
+                added = n;
+            }
+        } else if part.contains("deletion") {
+            if let Some(n) = part.split_whitespace().next().and_then(|s| s.parse::<i64>().ok()) {
+                removed = n;
+            }
+        }
+    }
+
+    Ok(DiffStats {
+        files_changed: files,
+        lines_added: added,
+        lines_removed: removed,
+    })
 }
 
 /// Recursively list files in a directory, respecting .gitignore.

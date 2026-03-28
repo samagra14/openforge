@@ -14,7 +14,7 @@ use crate::agent::manager::AgentManager;
 use crate::db::queries;
 use crate::state::AppState;
 use crate::terminal::pty::TerminalManager;
-use crate::worktree::diff::{DiffEntry, FileEntry};
+use crate::worktree::diff::{DiffEntry, DiffStats, FileEntry};
 
 // --- Repo commands ---
 
@@ -109,9 +109,9 @@ fn create_workspace(
     let repo_slug = repo.name.replace('/', "-").to_lowercase();
     let wt_path = worktree::manager::worktree_path(&repo_slug, &name);
 
-    // Create worktree
+    // Fetch from origin and create worktree based on latest upstream
     eprintln!("[OpenForge] Creating worktree at {wt_path}, branch={branch_name}, base={}", repo.default_branch);
-    worktree::manager::create_worktree(&repo.path, &wt_path, &branch_name, &repo.default_branch).map_err(|e| {
+    worktree::manager::create_worktree(&repo.path, &wt_path, &branch_name, &repo.default_branch, true).map_err(|e| {
         eprintln!("[OpenForge] create_worktree failed: {e}");
         e
     })?;
@@ -184,6 +184,65 @@ fn restore_workspace(state: State<AppState>, id: String) -> Result<(), String> {
     }
 
     queries::update_workspace_status(&db, &id, "active").map_err(|e| e.to_string())
+}
+
+// --- Workspace status ---
+
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+struct WorkspaceStatusInfo {
+    session_status: String, // "running", "idle", "new"
+    lines_added: i64,
+    lines_removed: i64,
+    files_changed: i64,
+    last_activity: Option<String>,
+}
+
+#[tauri::command]
+fn get_workspace_status(
+    state: State<AppState>,
+    workspace_id: String,
+) -> Result<WorkspaceStatusInfo, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let ws = queries::get_workspace(&db, &workspace_id).map_err(|e| e.to_string())?;
+    let repo = queries::get_repo(&db, &ws.repo_id).map_err(|e| e.to_string())?;
+
+    // Get sessions for this workspace to determine status
+    let sessions = queries::list_sessions(&db, &workspace_id).map_err(|e| e.to_string())?;
+    let session_status = if sessions.iter().any(|s| s.status == "running") {
+        "running".to_string()
+    } else if sessions.is_empty() {
+        "new".to_string()
+    } else {
+        "idle".to_string()
+    };
+
+    // Get last message timestamp across all sessions
+    let last_activity = queries::get_workspace_last_activity(&db, &workspace_id)
+        .map_err(|e| e.to_string())?;
+
+    // Get diff stats
+    let diff_stats = if ws.status == "active" {
+        worktree::diff::get_diff_stats(&ws.worktree_path, &repo.default_branch)
+            .unwrap_or(worktree::diff::DiffStats {
+                files_changed: 0,
+                lines_added: 0,
+                lines_removed: 0,
+            })
+    } else {
+        worktree::diff::DiffStats {
+            files_changed: 0,
+            lines_added: 0,
+            lines_removed: 0,
+        }
+    };
+
+    Ok(WorkspaceStatusInfo {
+        session_status,
+        lines_added: diff_stats.lines_added,
+        lines_removed: diff_stats.lines_removed,
+        files_changed: diff_stats.files_changed,
+        last_activity,
+    })
 }
 
 // --- Session commands ---
@@ -665,6 +724,7 @@ pub fn run() {
             list_workspaces,
             archive_workspace,
             restore_workspace,
+            get_workspace_status,
             create_session,
             send_message,
             stop_agent,
