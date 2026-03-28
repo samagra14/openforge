@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://samagra14.github.io/openforge/sitemap.xml

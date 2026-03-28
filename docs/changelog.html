@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Changelog — OpenForge</title>
+  <meta name="description" content="What's new in OpenForge. Release notes and version history.">
+  <meta name="theme-color" content="#faf9f6" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0c0c0d" media="(prefers-color-scheme: dark)">
+  <link rel="canonical" href="https://samagra14.github.io/openforge/changelog.html">
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:title" content="Changelog — OpenForge">
+  <meta property="og:description" content="What's new in OpenForge. Release notes and version history.">
+  <meta property="og:url" content="https://samagra14.github.io/openforge/changelog.html">
+  <meta property="og:site_name" content="OpenForge">
+  <meta property="og:locale" content="en_US">
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Changelog — OpenForge">
+  <meta name="twitter:description" content="What's new in OpenForge. Release notes and version history.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Mono:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #faf9f6;
+      --bg-secondary: #f4f3ef;
+      --bg-tertiary: #eceae5;
+      --bg-elevated: #ffffff;
+      --text-primary: #1a1916;
+      --text-secondary: #6e6b65;
+      --text-tertiary: #a09d97;
+      --accent: #9c8b6e;
+      --accent-hover: #8a7a60;
+      --accent-subtle: rgba(156, 139, 110, 0.14);
+      --accent-dim: #b3a48c;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.15);
+      --code-bg: #eceae5;
+      --hover: rgba(0, 0, 0, 0.04);
+      --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 3px 10px rgba(0, 0, 0, 0.07);
+      --success: #5f8a66;
+      --error: #b8645e;
+      --font-display: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'DM Mono', 'SF Mono', 'Menlo', monospace;
+      --font-body: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', system-ui, sans-serif;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --radius: 10px;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg-primary: #0c0c0d;
+        --bg-secondary: #111112;
+        --bg-tertiary: #18181a;
+        --bg-elevated: #1c1c1e;
+        --text-primary: #e8e6e1;
+        --text-secondary: #8a8884;
+        --text-tertiary: #5a5856;
+        --accent: #c4b398;
+        --accent-hover: #d4c3a8;
+        --accent-subtle: rgba(196, 179, 152, 0.12);
+        --accent-dim: #a09280;
+        --border: rgba(255, 255, 255, 0.07);
+        --border-strong: rgba(255, 255, 255, 0.14);
+        --code-bg: #0e0e10;
+        --hover: rgba(255, 255, 255, 0.04);
+        --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.30);
+        --shadow-md: 0 3px 10px rgba(0, 0, 0, 0.40);
+        --success: #7da383;
+        --error: #c47a73;
+      }
+    }
+
+    ::selection { background: var(--accent-subtle); }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.6;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      overflow-x: hidden;
+    }
+
+    a { color: inherit; text-decoration: none; }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+      padding: 0 28px;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 14px 0;
+      background: color-mix(in srgb, var(--bg-primary) 85%, transparent);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
+      border-bottom: 1px solid var(--border);
+    }
+
+    nav .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .forge-mark {
+      width: 28px;
+      height: 28px;
+      border-radius: 7px;
+      background: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-style: italic;
+      font-size: 16px;
+      color: white;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .forge-mark { color: #0c0c0d; }
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 28px;
+    }
+
+    .nav-links a {
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: color 0.2s;
+      letter-spacing: 0;
+    }
+
+    .nav-links a:hover { color: var(--text-primary); }
+
+    .nav-links a.active { color: var(--text-primary); font-weight: 500; }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 9px 18px;
+      border-radius: 8px;
+      font-family: var(--font-body);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      border: none;
+      white-space: nowrap;
+      letter-spacing: -0.005em;
+    }
+
+    .btn-primary {
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.85;
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    /* ─── HERO ─── */
+    .page-header {
+      padding: 140px 0 60px;
+    }
+
+    .page-header h1 {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.1;
+      font-weight: 400;
+      letter-spacing: -0.025em;
+      margin-bottom: 12px;
+    }
+
+    .page-header h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .page-header p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      max-width: 480px;
+    }
+
+    /* ─── CHANGELOG ─── */
+    .changelog {
+      padding: 0 0 120px;
+    }
+
+    .changelog-entry {
+      position: relative;
+      padding: 0 0 64px 40px;
+      border-left: 1px solid var(--border);
+      margin-left: 12px;
+    }
+
+    .changelog-entry:last-child {
+      border-left-color: transparent;
+      padding-bottom: 0;
+    }
+
+    .changelog-entry::before {
+      content: '';
+      position: absolute;
+      left: -5px;
+      top: 6px;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 2px solid var(--bg-primary);
+    }
+
+    .changelog-entry.latest::before {
+      width: 11px;
+      height: 11px;
+      left: -6px;
+      top: 5px;
+      box-shadow: 0 0 0 3px var(--accent-subtle);
+    }
+
+    .entry-header {
+      display: flex;
+      align-items: baseline;
+      gap: 14px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+
+    .entry-version {
+      font-family: var(--font-display);
+      font-size: 28px;
+      font-weight: 400;
+      letter-spacing: -0.02em;
+    }
+
+    .entry-date {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .entry-tag {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+
+    .entry-tag.latest {
+      background: var(--accent-subtle);
+      color: var(--accent);
+    }
+
+    .entry-tag.initial {
+      background: rgba(95, 138, 102, 0.12);
+      color: var(--success);
+    }
+
+    .entry-body {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px 28px;
+      transition: border-color 0.2s;
+    }
+
+    .entry-body:hover {
+      border-color: var(--border-strong);
+    }
+
+    .entry-body h3 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      letter-spacing: -0.01em;
+    }
+
+    .entry-body ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .entry-body li {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text-secondary);
+    }
+
+    .entry-body li .icon {
+      flex-shrink: 0;
+      margin-top: 3px;
+      width: 16px;
+      height: 16px;
+      color: var(--accent-dim);
+    }
+
+    .entry-body li .icon.new { color: var(--success); }
+    .entry-body li .icon.fix { color: var(--error); }
+    .entry-body li .icon.improve { color: var(--accent); }
+
+    .entry-body li strong {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .entry-body li code {
+      background: var(--accent-subtle);
+      color: var(--accent);
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-family: var(--font-mono);
+    }
+
+    .entry-body .pr-link {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: var(--font-mono);
+      transition: color 0.2s;
+    }
+
+    .entry-body .pr-link:hover { color: var(--accent); }
+
+    .entry-section + .entry-section {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 40px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    footer .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-left {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .footer-logo {
+      font-size: 14px;
+      font-weight: 600;
+      letter-spacing: -0.02em;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 20px;
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .footer-links a { transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text-secondary); }
+
+    .footer-right {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ─── SCROLL REVEALS ─── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(20px);
+      transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-d1 { transition-delay: 0.08s; }
+    .reveal-d2 { transition-delay: 0.16s; }
+
+    .skip-link:focus {
+      position: fixed;
+      left: 50%;
+      top: 12px;
+      transform: translateX(-50%);
+      width: auto;
+      height: auto;
+      overflow: visible;
+      padding: 8px 18px;
+      background: var(--text-primary);
+      color: var(--bg-primary);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 9999;
+      text-decoration: none;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 640px) {
+      .page-header { padding: 120px 0 40px; }
+      .nav-links a.nav-hide { display: none; }
+      footer .container { flex-direction: column; gap: 16px; text-align: center; }
+      .footer-left { flex-direction: column; }
+      .entry-header { flex-direction: column; gap: 6px; }
+      .entry-body { padding: 18px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <a href="#main-content" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;z-index:999;">Skip to main content</a>
+
+  <!-- NAV -->
+  <nav>
+    <div class="container">
+      <a href="index.html" class="nav-logo">
+        <div class="forge-mark">O</div>
+        OpenForge
+      </a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-hide">Home</a>
+        <a href="changelog.html" class="active nav-hide">Changelog</a>
+        <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener">
+          <svg viewBox="0 0 16 16" width="15" height="15" fill="currentColor" style="vertical-align: -2px; margin-right: 3px;"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
+          GitHub
+        </a>
+        <a href="index.html#download" class="btn btn-primary" style="padding: 7px 16px; font-size: 12px;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main-content">
+
+  <!-- HEADER -->
+  <section class="page-header">
+    <div class="container">
+      <h1 class="reveal">What's <em>new</em></h1>
+      <p class="reveal reveal-d1">Release notes and version history for OpenForge.</p>
+    </div>
+  </section>
+
+  <!-- CHANGELOG -->
+  <section class="changelog">
+    <div class="container">
+
+      <!-- v0.2.5 -->
+      <article class="changelog-entry latest reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.2.5</span>
+          <span class="entry-tag latest">Latest</span>
+          <span class="entry-date"><time datetime="2026-03-28">March 28, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <h3>Central pane tab system</h3>
+          <ul>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>Tabbed editor pane</strong> &mdash; open multiple files, diffs, and chats as tabs in the central panel</span>
+            </li>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>CodeMirror editor</strong> &mdash; syntax-highlighted file viewer with 15+ language grammars</span>
+            </li>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>Side-by-side diff viewer</strong> &mdash; CodeMirror merge view comparing worktree against base branch</span>
+            </li>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>Changes overview</strong> &mdash; summary view with file count, lines added/removed, and status badges</span>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- v0.2.4 -->
+      <article class="changelog-entry reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.2.4</span>
+          <span class="entry-date"><time datetime="2026-03-28">March 28, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <h3>Workspace status &amp; app icon</h3>
+          <ul>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>Workspace hover card</strong> &mdash; hover over any workspace to see task, status, lines changed, and last activity</span>
+            </li>
+            <li>
+              <svg class="icon improve" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+              <span><strong>Monochrome app icon</strong> &mdash; new minimal icon that fits macOS design language</span>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- v0.2.3 -->
+      <article class="changelog-entry reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.2.3</span>
+          <span class="entry-date"><time datetime="2026-03-28">March 28, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <h3>File-type icons</h3>
+          <ul>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>File-type icons</strong> &mdash; distinct icons for JS, TS, Python, Rust, Go, and 20+ more file types across the file tree, diff viewer, and tabs</span>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- v0.2.2 -->
+      <article class="changelog-entry reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.2.2</span>
+          <span class="entry-date"><time datetime="2026-03-28">March 28, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <h3>Fictional workspace names</h3>
+          <ul>
+            <li>
+              <svg class="icon improve" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+              <span><strong>200+ fictional names</strong> &mdash; workspaces are now named after places from Tolkien, Harry Potter, Star Wars, anime, mythology, and more</span>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- v0.2.1 -->
+      <article class="changelog-entry reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.2.1</span>
+          <span class="entry-date"><time datetime="2026-03-28">March 28, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <h3>Website downloads</h3>
+          <ul>
+            <li>
+              <svg class="icon improve" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+              <span><strong>Direct download links</strong> &mdash; separate Apple Silicon and Intel Mac download buttons on the website, auto-resolved from GitHub Releases</span>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- v0.2.0 -->
+      <article class="changelog-entry reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.2.0</span>
+          <span class="entry-date"><time datetime="2026-03-28">March 28, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <h3>Build &amp; release pipeline</h3>
+          <ul>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>Auto-release on merge</strong> &mdash; GitHub Actions workflow builds DMGs for both architectures and creates a release automatically</span>
+            </li>
+            <li>
+              <svg class="icon fix" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <span><strong>DMG build fix</strong> &mdash; added <code>--bundles dmg</code> flag to produce correct macOS disk images</span>
+            </li>
+            <li>
+              <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span><strong>README</strong> &mdash; comprehensive docs with architecture overview, screenshots, and build instructions</span>
+            </li>
+          </ul>
+        </div>
+      </article>
+
+      <!-- v0.1.0 -->
+      <article class="changelog-entry reveal">
+        <div class="entry-header">
+          <span class="entry-version">0.1.0</span>
+          <span class="entry-tag initial">Initial release</span>
+          <span class="entry-date"><time datetime="2026-03-27">March 27, 2026</time></span>
+        </div>
+        <div class="entry-body">
+          <div class="entry-section">
+            <h3>Core application</h3>
+            <ul>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Three-panel layout</strong> &mdash; resizable sidebar, central chat pane, and right panel with files, diff, and terminal</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Git worktree management</strong> &mdash; create, archive, and restore isolated worktrees per task</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Claude Code integration</strong> &mdash; multi-turn chat sessions with Haiku, Sonnet, and Opus model selection</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Streaming output</strong> &mdash; NDJSON parsing with tool call rendering, thinking blocks, and cost tracking</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Checkpoint system</strong> &mdash; automatic git-ref snapshots before each message with one-click revert</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Integrated terminal</strong> &mdash; xterm.js with full PTY support per workspace</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Diff viewer</strong> &mdash; see changed files vs base branch with add/modify/delete/rename status</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>File tree</strong> &mdash; browse and view all files in the worktree</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Repo scripts</strong> &mdash; configurable setup, run, and archive shell scripts per repository</span>
+              </li>
+            </ul>
+          </div>
+          <div class="entry-section">
+            <h3>Design &amp; infrastructure</h3>
+            <ul>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>Monochrome theme</strong> &mdash; luxury dark and light modes with automatic system preference detection</span>
+              </li>
+              <li>
+                <svg class="icon new" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                <span><strong>GitHub Pages site</strong> &mdash; landing page with download links and project overview</span>
+              </li>
+              <li>
+                <svg class="icon fix" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                <span><strong>Streaming fixes</strong> &mdash; fixed tool status updates and added requestAnimationFrame throttling for smooth rendering</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </article>
+
+    </div>
+  </section>
+
+  </main>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-left">
+        <span class="footer-logo">OpenForge</span>
+        <div class="footer-links">
+          <a href="https://github.com/samagra14/openforge" target="_blank" rel="noopener">GitHub</a>
+          <a href="https://github.com/samagra14/openforge/releases" target="_blank" rel="noopener">Releases</a>
+          <a href="https://github.com/samagra14/openforge/issues" target="_blank" rel="noopener">Issues</a>
+          <a href="https://github.com/samagra14/openforge/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a>
+        </div>
+      </div>
+      <div class="footer-right">&copy; 2026 OpenForge Contributors</div>
+    </div>
+  </footer>
+
+  <script>
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+  </script>
+
+</body>
+</html>

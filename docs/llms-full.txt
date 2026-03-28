@@ -1,0 +1,79 @@
+# OpenForge — Full Documentation for LLMs
+
+> OpenForge is a free, open-source macOS desktop application that orchestrates parallel Claude Code agents across isolated git worktrees.
+
+## Overview
+
+OpenForge lets developers run multiple Claude Code AI coding agents simultaneously, each in its own git worktree and branch. One agent fixes a bug while another adds a feature while a third writes tests — all at the same time, all in isolated branches, all visible in a single native macOS window.
+
+- License: MIT (fully open-source, not open-core, not freemium)
+- Platform: macOS 12+ (Apple Silicon and Intel)
+- Current version: 0.2.5
+- No telemetry, no analytics, no tracking, no account required
+- Tech stack: Tauri 2.x (Rust backend) + React 19 + TypeScript + Vite (frontend)
+
+## Architecture
+
+Three-layer architecture:
+
+1. Rust backend (src-tauri/): Process management via PTY (portable-pty), git worktree lifecycle, checkpoint system, SQLite state persistence, script execution
+2. React frontend (src/): Three-panel IDE layout, chat UI, terminal rendering (xterm.js), file viewer and diff (CodeMirror 6), Zustand state management
+3. Tauri IPC bridge: Commands (frontend calls backend) and Events (backend pushes to frontend via streaming)
+
+## Core Features
+
+### Parallel Workspaces
+Each task gets its own git worktree and branch. Agents never interfere with each other. Create a workspace with Cmd+N, pick a repo, and describe the task.
+
+### Claude Code Integration
+Each workspace gets its own Claude Code session with full multi-turn history. Supports Haiku, Sonnet, and Opus model selection. Spawns the Claude CLI with streaming NDJSON output.
+
+### Git-Backed Checkpoints
+Before every user message, OpenForge creates a git ref snapshot at refs/openforge-checkpoints/<message_id>. One-click revert rolls back to any previous state.
+
+### Diff Viewer
+Right panel shows files changed vs. base branch with color-coded diffs. Side-by-side CodeMirror merge view for comparing worktree against base branch.
+
+### File Explorer
+Browse the complete worktree file tree with syntax-highlighted preview for 15+ language grammars including JavaScript, TypeScript, Python, Rust, Go, Java, HTML, CSS, JSON, YAML, Markdown, and more.
+
+### Integrated Terminal
+Full PTY-backed terminal (xterm.js) running in each worktree directory.
+
+### Tab System
+Central pane supports multiple tabs per workspace: chat sessions, file viewers, diff viewers, and changes overview.
+
+### Workspace Naming
+Workspaces are named after fictional places from literature, movies, anime, and mythology (200+ names like rivendell, tatooine, hogwarts, wakanda).
+
+## How It Works
+
+1. Add a repo: Select any local git repository. Branches and remotes are detected automatically.
+2. Create a workspace: OpenForge runs `git worktree add` to create an isolated directory on its own branch. Runs optional setup scripts (e.g., npm install).
+3. Chat with Claude: Type a prompt. OpenForge spawns `claude -p --output-format stream-json --model <model>`. NDJSON responses stream in real time. Follow-up messages use --resume --session-id for context continuity.
+4. Review changes: The right panel shows live diffs, a full file tree, and an integrated terminal.
+5. Ship: Merge the branch when satisfied.
+
+## Data Storage
+
+- Database: SQLite at ~/openforge/data/openforge.db
+- Worktrees: ~/openforge/workspaces/<repo-slug>/<workspace-name>/
+- Checkpoint refs: refs/openforge-checkpoints/<message-id>
+
+## Building from Source
+
+Prerequisites: macOS, Node.js 20+, Rust (stable), Git 2.20+, Claude Code CLI.
+
+    git clone https://github.com/samagra14/openforge.git
+    cd openforge
+    npm install
+    npm run tauri build
+
+## Links
+
+- Website: https://samagra14.github.io/openforge/
+- Changelog: https://samagra14.github.io/openforge/changelog.html
+- GitHub: https://github.com/samagra14/openforge
+- Releases: https://github.com/samagra14/openforge/releases
+- Issues: https://github.com/samagra14/openforge/issues
+- License: https://github.com/samagra14/openforge/blob/main/LICENSE
