@@ -2,7 +2,7 @@ import {
   ChevronLeft,
   ChevronRight,
   GitBranch,
-  Globe,
+  Sparkles,
   ExternalLink,
 } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace";
@@ -59,10 +59,10 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-3">
-        {/* City name */}
+        {/* Workspace name */}
         {activeWorkspace && (
           <div className="flex items-center gap-2">
-            <Globe size={13} style={{ color: "var(--text-tertiary)", opacity: 0.6 }} />
+            <Sparkles size={13} style={{ color: "var(--text-tertiary)", opacity: 0.6 }} />
             <span
               className="font-mono"
               style={{ color: "var(--text-tertiary)", fontSize: 12 }}

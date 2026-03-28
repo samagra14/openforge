@@ -91,23 +91,23 @@ fn create_workspace(
         e.to_string()
     })?;
 
-    // Get existing city names for this repo
+    // Get existing workspace names for this repo
     let existing = queries::list_workspaces(&db, &repo_id).map_err(|e| e.to_string())?;
-    let used_cities: Vec<String> = existing.iter().map(|w| w.city_name.clone()).collect();
+    let used_names: Vec<String> = existing.iter().map(|w| w.city_name.clone()).collect();
 
-    // Pick a random city name
-    let city = pick_city_name(&used_cities);
+    // Pick a random workspace name
+    let name = pick_workspace_name(&used_names);
 
-    // Build branch name from task or city
+    // Build branch name from task or workspace name
     let branch_slug = task
         .as_ref()
         .map(|t| slugify(t))
-        .unwrap_or_else(|| city.clone());
+        .unwrap_or_else(|| name.clone());
     let branch_name = format!("agent/{branch_slug}");
 
     // Build repo slug from name
     let repo_slug = repo.name.replace('/', "-").to_lowercase();
-    let wt_path = worktree::manager::worktree_path(&repo_slug, &city);
+    let wt_path = worktree::manager::worktree_path(&repo_slug, &name);
 
     // Create worktree
     eprintln!("[OpenForge] Creating worktree at {wt_path}, branch={branch_name}, base={}", repo.default_branch);
@@ -121,7 +121,7 @@ fn create_workspace(
     let workspace = queries::Workspace {
         id: uuid::Uuid::new_v4().to_string(),
         repo_id,
-        city_name: city,
+        city_name: name,
         worktree_path: wt_path,
         branch_name,
         task_description: task,
@@ -533,10 +533,10 @@ fn get_default_branch(path: &str) -> String {
     "main".to_string()
 }
 
-fn pick_city_name(exclude: &[String]) -> String {
+fn pick_workspace_name(exclude: &[String]) -> String {
     use rand::seq::SliceRandom;
-    let cities = cities_list();
-    let available: Vec<&&str> = cities.iter().filter(|c| !exclude.contains(&c.to_string())).collect();
+    let names = fiction_names_list();
+    let available: Vec<&&str> = names.iter().filter(|c| !exclude.contains(&c.to_string())).collect();
     let mut rng = rand::thread_rng();
     available
         .choose(&mut rng)
@@ -573,38 +573,65 @@ fn chrono_now() -> String {
     "1970-01-01T00:00:00Z".to_string()
 }
 
-fn cities_list() -> Vec<&'static str> {
+fn fiction_names_list() -> Vec<&'static str> {
     vec![
-        "tokyo", "mumbai", "lagos", "rio-de-janeiro", "paris", "new-york", "seoul",
-        "istanbul", "cairo", "buenos-aires", "nairobi", "bangkok", "toronto", "sydney",
-        "berlin", "dubai", "singapore", "jakarta", "moscow", "lima", "bogota", "delhi",
-        "chennai", "bangalore", "hyderabad", "kolkata", "pune", "ahmedabad", "jaipur",
-        "lucknow", "london", "madrid", "rome", "amsterdam", "prague", "vienna", "zurich",
-        "oslo", "stockholm", "helsinki", "copenhagen", "dublin", "lisbon", "athens",
-        "warsaw", "budapest", "bucharest", "sofia", "belgrade", "zagreb", "bratislava",
-        "taipei", "hong-kong", "shanghai", "beijing", "guangzhou", "shenzhen", "osaka",
-        "kyoto", "nagoya", "sapporo", "hanoi", "ho-chi-minh", "manila", "kuala-lumpur",
-        "yangon", "dhaka", "karachi", "lahore", "islamabad", "tehran", "baghdad",
-        "riyadh", "doha", "muscat", "amman", "beirut", "jerusalem", "tel-aviv",
-        "cape-town", "johannesburg", "casablanca", "tunis", "algiers", "accra", "dakar",
-        "addis-ababa", "kampala", "dar-es-salaam", "maputo", "lusaka", "harare",
-        "mexico-city", "guadalajara", "monterrey", "havana", "san-jose", "panama-city",
-        "quito", "santiago", "montevideo", "asuncion", "la-paz", "caracas", "medellin",
-        "vancouver", "montreal", "calgary", "ottawa", "chicago", "san-francisco",
-        "los-angeles", "seattle", "austin", "denver", "miami", "boston", "portland",
-        "detroit", "atlanta", "phoenix", "houston", "dallas", "philadelphia",
-        "minneapolis", "nashville", "new-orleans", "salt-lake-city", "pittsburgh",
-        "auckland", "wellington", "melbourne", "brisbane", "perth", "honolulu",
-        "reykjavik", "tallinn", "riga", "vilnius", "tbilisi", "yerevan", "baku",
-        "tashkent", "almaty", "ulaanbaatar", "kathmandu", "colombo", "kochi",
-        "goa", "varanasi", "indore", "surat", "nagpur", "bhopal", "chandigarh",
-        "coimbatore", "mysore", "thiruvananthapuram", "vizag", "patna", "ranchi",
-        "raipur", "guwahati", "imphal", "shimla", "dehradun", "rishikesh",
-        "udaipur", "jodhpur", "agra", "kanpur", "allahabad", "amritsar",
-        "florence", "barcelona", "munich", "hamburg", "lyon", "marseille",
-        "milan", "naples", "porto", "seville", "malaga", "edinburgh", "glasgow",
-        "manchester", "birmingham", "brussels", "antwerp", "rotterdam", "gothenburg",
-        "bergen", "krakow", "gdansk", "split", "dubrovnik", "santorini",
+        // Tolkien
+        "rivendell", "mordor", "gondor", "rohan", "shire", "minas-tirith", "lothlorien",
+        "isengard", "helms-deep", "fangorn", "erebor", "moria", "aragorn", "gandalf",
+        "frodo", "legolas", "gimli", "samwise", "gollum", "elrond", "galadriel", "eowyn",
+        "faramir", "boromir", "theoden", "treebeard",
+        // Harry Potter
+        "hogwarts", "diagon-alley", "hogsmeade", "azkaban", "godrics-hollow", "dumbledore",
+        "hermione", "hagrid", "snape", "sirius", "lupin", "dobby", "neville", "draco",
+        "bellatrix", "voldemort", "mcgonagall",
+        // Star Wars
+        "tatooine", "coruscant", "naboo", "endor", "dagobah", "hoth", "kashyyyk",
+        "alderaan", "mustafar", "kamino", "bespin", "jakku", "mandalore", "yoda",
+        "chewbacca", "leia", "han-solo", "obi-wan", "ahsoka", "padme",
+        // Game of Thrones
+        "winterfell", "kings-landing", "dragonstone", "highgarden", "dorne", "braavos",
+        "volantis", "meereen", "casterly-rock", "tyrion", "cersei", "daenerys", "arya",
+        "sansa", "jon-snow", "brienne", "hodor", "missandei",
+        // Marvel / DC
+        "wakanda", "gotham", "metropolis", "asgard", "xandar", "knowhere", "titan",
+        "sakaar", "madripoor",
+        // Studio Ghibli
+        "totoro", "howl", "chihiro", "ashitaka", "kiki", "ponyo", "mononoke", "laputa",
+        "nausicaa",
+        // Disney
+        "neverland", "agrabah", "atlantica", "elsa", "simba", "mulan", "merida", "moana",
+        "maui", "stitch",
+        // Narnia
+        "narnia", "cair-paravel", "aslan",
+        // Dune
+        "arrakis", "caladan", "giedi-prime", "paul-atreides", "chani", "stilgar", "leto",
+        "duncan",
+        // The Witcher
+        "geralt", "yennefer", "ciri", "triss", "kaer-morhen", "novigrad", "oxenfurt",
+        "skellige",
+        // Avatar: The Last Airbender
+        "aang", "katara", "sokka", "zuko", "toph", "iroh", "azula", "appa", "ba-sing-se",
+        "omashu",
+        // Pokemon
+        "pikachu", "charizard", "mewtwo", "eevee", "bulbasaur", "squirtle",
+        // Zelda
+        "hyrule", "zelda", "ganondorf", "kakariko", "zora", "gerudo", "kokiri",
+        // Anime
+        "naruto", "goku", "luffy", "ichigo", "tanjiro", "midoriya", "eren", "mikasa",
+        "levi", "spike-spiegel", "edward-elric",
+        // Mythology & classic fiction
+        "oz", "wonderland", "camelot", "avalon", "eldorado", "shangri-la", "utopia",
+        "valhalla", "olympus", "atlantis", "xanadu",
+        // Discworld
+        "ankh-morpork", "rincewind", "vimes",
+        // Hitchhiker's Guide
+        "zaphod", "marvin", "trillian", "magrathea",
+        // Nintendo & games
+        "mario", "luigi", "peach", "bowser", "link", "samus", "kirby", "sonic",
+        // Final Fantasy
+        "cloud-strife", "tifa", "aerith", "sephiroth", "midgar", "zanarkand",
+        // Sci-fi
+        "pandora", "cybertron", "krypton", "vulcan", "bajor", "trantor", "rapture",
     ]
 }
 

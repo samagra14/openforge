@@ -59,10 +59,10 @@ pub fn workspace_base_dir() -> PathBuf {
 }
 
 /// Build the full worktree path for a workspace.
-pub fn worktree_path(repo_slug: &str, city_name: &str) -> String {
+pub fn worktree_path(repo_slug: &str, workspace_name: &str) -> String {
     workspace_base_dir()
         .join(repo_slug)
-        .join(city_name)
+        .join(workspace_name)
         .to_string_lossy()
         .to_string()
 }
