@@ -2,11 +2,11 @@ import { useEffect, useState } from "react";
 import {
   Folder,
   FolderOpen,
-  File,
   ChevronRight,
   ChevronDown,
 } from "lucide-react";
 import { commands, type FileEntry } from "../../lib/tauri";
+import { FileTypeIcon } from "../common/FileTypeIcon";
 
 interface Props {
   workspaceId: string;
@@ -142,7 +142,7 @@ function FileTreeNode({
         ) : (
           <>
             <span className="w-3.5" />
-            <File size={14} style={{ color: "var(--text-tertiary)" }} />
+            <FileTypeIcon filename={entry.name} size={14} />
           </>
         )}
         <span className="truncate" style={{ letterSpacing: "-0.01em" }}>

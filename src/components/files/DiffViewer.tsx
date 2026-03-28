@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { FilePlus, FileEdit, FileX } from "lucide-react";
 import { commands, type DiffEntry } from "../../lib/tauri";
+import { FileTypeIcon } from "../common/FileTypeIcon";
 
 interface Props {
   workspaceId: string;
@@ -105,15 +105,9 @@ export function DiffViewer({ workspaceId }: Props) {
     );
   }
 
-  const statusIcon = (status: string) => {
-    switch (status) {
-      case "added":
-        return <FilePlus size={14} style={{ color: "var(--success)" }} />;
-      case "deleted":
-        return <FileX size={14} style={{ color: "var(--error)" }} />;
-      default:
-        return <FileEdit size={14} style={{ color: "var(--accent)" }} />;
-    }
+  const fileIcon = (path: string) => {
+    const filename = path.split("/").pop() ?? path;
+    return <FileTypeIcon filename={filename} size={14} />;
   };
 
   const statusBadge = (status: string) => {
@@ -145,7 +139,7 @@ export function DiffViewer({ workspaceId }: Props) {
                 : "var(--text-secondary)",
           }}
         >
-          {statusIcon(entry.status)}
+          {fileIcon(entry.path)}
           <span className="truncate flex-1 text-left" style={{ letterSpacing: "-0.01em" }}>
             {entry.path}
           </span>
