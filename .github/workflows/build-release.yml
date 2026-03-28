@@ -2,25 +2,115 @@ name: Build & Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Release tag (e.g. v0.1.0)'
-        required: true
 
 permissions:
   contents: write
 
 jobs:
+  version-bump:
+    runs-on: ubuntu-latest
+    outputs:
+      new_version: ${{ steps.bump.outputs.new_version }}
+      new_tag: ${{ steps.bump.outputs.new_tag }}
+      should_release: ${{ steps.bump.outputs.should_release }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if version bump needed
+        id: bump
+        run: |
+          current_version=$(node -p "require('./package.json').version")
+          latest_tag=$(git tag --list 'v*' --sort=-v:refname | head -n1 || echo "")
+
+          if [ -z "$latest_tag" ]; then
+            # No tags yet, use current version
+            new_version="$current_version"
+          elif [ "$latest_tag" = "v${current_version}" ]; then
+            # Current version already released, bump patch
+            IFS='.' read -r major minor patch <<< "$current_version"
+            patch=$((patch + 1))
+            new_version="${major}.${minor}.${patch}"
+          else
+            # Version in source differs from latest tag, use source version
+            new_version="$current_version"
+          fi
+
+          new_tag="v${new_version}"
+
+          # Check if this tag already exists
+          if git rev-parse "$new_tag" >/dev/null 2>&1; then
+            echo "Tag $new_tag already exists, skipping release"
+            echo "should_release=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "should_release=true" >> "$GITHUB_OUTPUT"
+          fi
+
+          echo "new_version=$new_version" >> "$GITHUB_OUTPUT"
+          echo "new_tag=$new_tag" >> "$GITHUB_OUTPUT"
+          echo "Version: $new_version, Tag: $new_tag"
+
+      - name: Update version in package.json
+        if: steps.bump.outputs.should_release == 'true'
+        run: |
+          new_version="${{ steps.bump.outputs.new_version }}"
+          node -e "
+            const fs = require('fs');
+            const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+            pkg.version = '$new_version';
+            fs.writeFileSync('package.json', JSON.stringify(pkg, null, 2) + '\n');
+          "
+
+      - name: Update version in tauri.conf.json
+        if: steps.bump.outputs.should_release == 'true'
+        run: |
+          new_version="${{ steps.bump.outputs.new_version }}"
+          node -e "
+            const fs = require('fs');
+            const conf = JSON.parse(fs.readFileSync('src-tauri/tauri.conf.json', 'utf8'));
+            conf.version = '$new_version';
+            fs.writeFileSync('src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2) + '\n');
+          "
+
+      - name: Update version in Cargo.toml
+        if: steps.bump.outputs.should_release == 'true'
+        run: |
+          new_version="${{ steps.bump.outputs.new_version }}"
+          sed -i "s/^version = \".*\"/version = \"$new_version\"/" src-tauri/Cargo.toml
+
+      - name: Commit version bump and create tag
+        if: steps.bump.outputs.should_release == 'true'
+        run: |
+          new_version="${{ steps.bump.outputs.new_version }}"
+          new_tag="${{ steps.bump.outputs.new_tag }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add package.json src-tauri/tauri.conf.json src-tauri/Cargo.toml
+          # Only commit if there are changes
+          if git diff --cached --quiet; then
+            echo "No version file changes to commit"
+          else
+            git commit -m "chore: bump version to ${new_version}"
+            git push
+          fi
+          git tag "$new_tag"
+          git push origin "$new_tag"
+
   build-macos:
+    needs: version-bump
+    if: needs.version-bump.outputs.should_release == 'true'
     runs-on: macos-latest
     strategy:
       matrix:
         target: [aarch64-apple-darwin, x86_64-apple-darwin]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version-bump.outputs.new_tag }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -52,9 +142,6 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ''
           CI: true
 
-      - name: List build output
-        run: find src-tauri/target/${{ matrix.target }}/release/bundle -type f 2>/dev/null || echo "No bundle directory found"
-
       - name: Upload DMG artifact
         uses: actions/upload-artifact@v4
         with:
@@ -62,7 +149,8 @@ jobs:
           path: src-tauri/target/${{ matrix.target }}/release/bundle/dmg/*.dmg
 
   release:
-    needs: build-macos
+    needs: [version-bump, build-macos]
+    if: needs.version-bump.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,20 +164,11 @@ jobs:
       - name: List artifacts
         run: find artifacts -type f -name '*.dmg' | sort
 
-      - name: Determine tag
-        id: tag
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ github.event.inputs.tag }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "tag=${{ github.ref_name }}" >> "$GITHUB_OUTPUT"
-          fi
-
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: OpenForge ${{ steps.tag.outputs.tag }}
+          tag_name: ${{ needs.version-bump.outputs.new_tag }}
+          name: OpenForge ${{ needs.version-bump.outputs.new_tag }}
           draft: false
           prerelease: false
           generate_release_notes: true
