@@ -1,0 +1,23 @@
+# OpenForge
+
+> OpenForge is a free, open-source macOS desktop application that orchestrates parallel Claude Code agents across isolated git worktrees. Built with Tauri 2 (Rust) + React 19 + TypeScript.
+
+OpenForge lets developers run multiple Claude Code AI coding agents simultaneously, each in its own git worktree and branch. One agent fixes a bug while another adds a feature while a third writes tests — all at the same time, all in isolated branches, all visible in a single native macOS window.
+
+Key facts:
+- License: MIT (fully open-source, not open-core)
+- Platform: macOS 12+ (Apple Silicon and Intel)
+- Tech stack: Tauri 2.x (Rust backend), React 19, TypeScript, Vite
+- No telemetry, no accounts, no lock-in
+- Current version: 0.2.5
+
+## Docs
+
+- [Landing page](https://samagra14.github.io/openforge/): Project overview, features, and download links
+- [Changelog](https://samagra14.github.io/openforge/changelog.html): Release notes and version history
+- [GitHub repository](https://github.com/samagra14/openforge): Source code, README, and contributing guide
+- [Releases](https://github.com/samagra14/openforge/releases): Download DMG binaries for Apple Silicon and Intel
+
+## Optional
+
+- [Full LLM context](https://samagra14.github.io/openforge/llms-full.txt): Detailed architecture, features, and technical information
