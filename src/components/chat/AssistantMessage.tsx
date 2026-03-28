@@ -15,6 +15,7 @@ import {
   FilePlus2,
   FolderSearch,
 } from "lucide-react";
+import { FileTypeIcon } from "../common/FileTypeIcon";
 
 interface Props {
   message: Message;
@@ -42,7 +43,7 @@ function shortName(path: string): string {
 }
 
 /** Build a human-readable description + optional file badge for a tool call */
-function toolDisplay(tc: ToolCall): { label: string; badge: string | null; icon: typeof FileText } {
+function toolDisplay(tc: ToolCall): { label: string; badge: string | null; icon: typeof FileText; isFile: boolean } {
   const val = (tc.input && typeof tc.input === "object" ? tc.input : {}) as Record<string, unknown>;
 
   switch (tc.name) {
@@ -51,36 +52,42 @@ function toolDisplay(tc: ToolCall): { label: string; badge: string | null; icon:
         label: "Read",
         badge: val.file_path ? shortName(String(val.file_path)) : null,
         icon: FileText,
+        isFile: true,
       };
     case "Edit":
       return {
         label: "Edit",
         badge: val.file_path ? shortName(String(val.file_path)) : null,
         icon: Pencil,
+        isFile: true,
       };
     case "Write":
       return {
         label: "Write",
         badge: val.file_path ? shortName(String(val.file_path)) : null,
         icon: FilePlus2,
+        isFile: true,
       };
     case "Bash":
       return {
         label: "Run",
         badge: val.command ? String(val.command).slice(0, 50) : null,
         icon: TerminalIcon,
+        isFile: false,
       };
     case "Grep":
       return {
         label: "Search",
         badge: val.pattern ? String(val.pattern).slice(0, 40) : null,
         icon: Search,
+        isFile: false,
       };
     case "Glob":
       return {
         label: "Find",
         badge: val.pattern ? String(val.pattern).slice(0, 40) : null,
         icon: FolderSearch,
+        isFile: false,
       };
     default: {
       // Generic fallback
@@ -89,6 +96,7 @@ function toolDisplay(tc: ToolCall): { label: string; badge: string | null; icon:
         label: tc.name,
         badge: firstStr ? String(firstStr).slice(0, 50) : null,
         icon: FileText,
+        isFile: false,
       };
     }
   }
@@ -162,7 +170,7 @@ function ThinkingBlock({ text }: { text: string }) {
 /** Flat inline row for regular tool calls (Read, Edit, Write, Bash, etc.) */
 function InlineToolCall({ tc }: { tc: ToolCall }) {
   const [expanded, setExpanded] = useState(false);
-  const { label, badge, icon: Icon } = toolDisplay(tc);
+  const { label, badge, icon: Icon, isFile } = toolDisplay(tc);
   const isBash = tc.name === "Bash";
 
   return (
@@ -172,7 +180,11 @@ function InlineToolCall({ tc }: { tc: ToolCall }) {
         className="flex items-center gap-2.5 py-1.5 w-full hover-bg rounded-lg px-2.5 -mx-2.5 transition-colors cursor-pointer"
       >
         <StatusDot status={tc.status} />
-        <Icon size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+        {isFile && badge ? (
+          <FileTypeIcon filename={badge} size={14} />
+        ) : (
+          <Icon size={14} style={{ color: "var(--text-tertiary)", flexShrink: 0 }} />
+        )}
         <span
           className="text-[13px] font-medium flex-shrink-0"
           style={{ color: "var(--text-primary)", letterSpacing: "-0.01em" }}
