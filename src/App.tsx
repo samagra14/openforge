@@ -6,6 +6,7 @@ import { NewWorkspace } from "./components/workspace/NewWorkspace";
 import { useUIStore } from "./stores/ui";
 import { useWorkspaceStore } from "./stores/workspace";
 import { useSessionStore } from "./stores/session";
+import { useTabStore } from "./stores/tabs";
 import { useAgent } from "./hooks/useAgent";
 import { commands } from "./lib/tauri";
 
@@ -20,9 +21,14 @@ export default function App() {
   const setRepos = useWorkspaceStore((s) => s.setRepos);
 
   const activeWorkspaceId = useWorkspaceStore((s) => s.activeWorkspaceId);
+  const sessions = useSessionStore((s) => s.sessions);
   const activeSessionId = useSessionStore((s) => s.activeSessionId);
   const addSession = useSessionStore((s) => s.addSession);
   const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const closeTab = useTabStore((s) => s.closeTab);
+  const activeTabId = useTabStore((s) =>
+    activeWorkspaceId ? s.activeTabId[activeWorkspaceId] ?? null : null
+  );
   useAgent(activeSessionId);
 
   const dragging = useRef<"left" | "right" | null>(null);
@@ -31,6 +37,21 @@ export default function App() {
   useEffect(() => {
     commands.listRepos().then(setRepos).catch(console.error);
   }, [setRepos]);
+
+  // Auto-create chat tabs for existing sessions when switching workspaces
+  useEffect(() => {
+    if (!activeWorkspaceId) return;
+    const { tabs, openChatTab } = useTabStore.getState();
+    const existingTabs = tabs[activeWorkspaceId] ?? [];
+    if (existingTabs.length > 0) return; // Already has tabs
+
+    const workspaceSessions = sessions.filter(
+      (s) => s.workspace_id === activeWorkspaceId
+    );
+    for (const session of workspaceSessions) {
+      openChatTab(activeWorkspaceId, session.id, session.title);
+    }
+  }, [activeWorkspaceId, sessions]);
 
   // Handle resize dragging
   const onMouseMove = useCallback(
@@ -73,7 +94,14 @@ export default function App() {
             commands.createSession(activeWorkspaceId, "sonnet").then((session) => {
               addSession(session);
               setActiveSession(session.id);
+              useTabStore.getState().openChatTab(activeWorkspaceId, session.id, session.title);
             }).catch(console.error);
+          }
+        }
+        if (e.key === "w") {
+          e.preventDefault();
+          if (activeWorkspaceId && activeTabId) {
+            closeTab(activeWorkspaceId, activeTabId);
           }
         }
         if (e.key === "l") {
@@ -92,7 +120,7 @@ export default function App() {
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [workspaces, setActiveWorkspace, setNewWorkspaceOpen, activeWorkspaceId, addSession, setActiveSession]);
+  }, [workspaces, setActiveWorkspace, setNewWorkspaceOpen, activeWorkspaceId, addSession, setActiveSession, closeTab, activeTabId]);
 
   const startDrag = (side: "left" | "right") => {
     dragging.current = side;

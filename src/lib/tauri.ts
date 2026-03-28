@@ -104,6 +104,8 @@ export const commands = {
     invoke<DiffEntry[]>("get_diff", { workspaceId }),
   getFileDiff: (workspaceId: string, path: string) =>
     invoke<string>("get_file_diff", { workspaceId, path }),
+  readFileAtRef: (workspaceId: string, path: string) =>
+    invoke<string>("read_file_at_ref", { workspaceId, path }),
 
   revertToCheckpoint: (messageId: string) =>
     invoke("revert_to_checkpoint", { messageId }),

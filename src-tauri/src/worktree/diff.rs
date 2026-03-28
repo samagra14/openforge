@@ -118,6 +118,23 @@ pub fn get_diff_stats(worktree_path: &str, base_branch: &str) -> Result<DiffStat
     })
 }
 
+/// Read a file's content at a specific git ref (e.g., base branch).
+/// Uses `git show <ref>:<path>` to retrieve the content.
+pub fn read_file_at_ref(worktree_path: &str, git_ref: &str, file_path: &str) -> Result<String, String> {
+    let output = Command::new("git")
+        .args(["show", &format!("{git_ref}:{file_path}")])
+        .current_dir(worktree_path)
+        .output()
+        .map_err(|e| format!("Failed to run git show: {e}"))?;
+
+    if !output.status.success() {
+        // File doesn't exist at this ref (newly added file)
+        return Ok(String::new());
+    }
+
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
 /// Recursively list files in a directory, respecting .gitignore.
 pub fn list_files_recursive(dir_path: &str) -> Result<Vec<FileEntry>, String> {
     let output = Command::new("git")
@@ -134,8 +151,16 @@ pub fn list_files_recursive(dir_path: &str) -> Result<Vec<FileEntry>, String> {
     let stdout = String::from_utf8_lossy(&output.stdout);
     let files: Vec<&str> = stdout.lines().collect();
 
-    // Build tree from flat file list
-    build_file_tree(&files, dir_path)
+    // Build tree from flat file list (use empty base so paths are relative)
+    build_file_tree(&files, "")
+}
+
+fn join_path(base: &str, name: &str) -> String {
+    if base.is_empty() {
+        name.to_string()
+    } else {
+        format!("{base}/{name}")
+    }
 }
 
 fn build_file_tree(files: &[&str], base_path: &str) -> Result<Vec<FileEntry>, String> {
@@ -159,10 +184,11 @@ fn build_file_tree(files: &[&str], base_path: &str) -> Result<Vec<FileEntry>, St
     // Directories first
     for (dir_name, sub_files) in &tree {
         let sub_refs: Vec<&str> = sub_files.iter().map(|s| s.as_str()).collect();
-        let children = build_file_tree(&sub_refs, &format!("{base_path}/{dir_name}"))?;
+        let dir_path = join_path(base_path, dir_name);
+        let children = build_file_tree(&sub_refs, &dir_path)?;
         entries.push(FileEntry {
             name: dir_name.clone(),
-            path: format!("{base_path}/{dir_name}"),
+            path: dir_path,
             is_dir: true,
             children: Some(children),
         });
@@ -172,7 +198,7 @@ fn build_file_tree(files: &[&str], base_path: &str) -> Result<Vec<FileEntry>, St
     for file_name in &standalone_files {
         entries.push(FileEntry {
             name: file_name.clone(),
-            path: format!("{base_path}/{file_name}"),
+            path: join_path(base_path, file_name),
             is_dir: false,
             children: None,
         });
