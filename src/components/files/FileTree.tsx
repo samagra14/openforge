@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { commands, type FileEntry } from "../../lib/tauri";
 import { FileTypeIcon } from "../common/FileTypeIcon";
+import { useTabStore } from "../../stores/tabs";
 
 interface Props {
   workspaceId: string;
@@ -15,8 +16,7 @@ interface Props {
 export function FileTree({ workspaceId }: Props) {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFile, setSelectedFile] = useState<string | null>(null);
-  const [fileContent, setFileContent] = useState<string | null>(null);
+  const openFileTab = useTabStore((s) => s.openFileTab);
 
   useEffect(() => {
     setLoading(true);
@@ -27,60 +27,14 @@ export function FileTree({ workspaceId }: Props) {
       .finally(() => setLoading(false));
   }, [workspaceId]);
 
-  const handleFileClick = async (path: string) => {
-    setSelectedFile(path);
-    try {
-      const content = await commands.readFile(workspaceId, path);
-      setFileContent(content);
-    } catch (e) {
-      setFileContent(`Error reading file: ${e}`);
-    }
+  const handleFileClick = (path: string) => {
+    openFileTab(workspaceId, path);
   };
 
   if (loading) {
     return (
       <div className="p-4 text-sm" style={{ color: "var(--text-tertiary)" }}>
         Loading files...
-      </div>
-    );
-  }
-
-  if (selectedFile && fileContent !== null) {
-    return (
-      <div className="h-full flex flex-col">
-        {/* Breadcrumb */}
-        <div
-          className="flex items-center gap-2 px-4 py-2.5 text-xs"
-          style={{
-            borderBottom: "1px solid var(--border)",
-            color: "var(--text-tertiary)",
-          }}
-        >
-          <button
-            onClick={() => {
-              setSelectedFile(null);
-              setFileContent(null);
-            }}
-            className="hover-bg px-1.5 py-0.5 rounded-md transition-colors"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            Files
-          </button>
-          <span style={{ opacity: 0.35 }}>/</span>
-          <span style={{ color: "var(--text-primary)" }}>{selectedFile}</span>
-        </div>
-
-        {/* File content */}
-        <pre
-          className="flex-1 overflow-auto p-4 leading-relaxed"
-          style={{
-            background: "var(--code-bg)",
-            fontFamily: '"SF Mono", "Menlo", monospace',
-            fontSize: 13,
-          }}
-        >
-          {fileContent}
-        </pre>
       </div>
     );
   }

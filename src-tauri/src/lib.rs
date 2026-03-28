@@ -401,6 +401,18 @@ fn get_file_diff(
     worktree::diff::get_file_diff(&ws.worktree_path, &repo.default_branch, &path)
 }
 
+#[tauri::command]
+fn read_file_at_ref(
+    state: State<AppState>,
+    workspace_id: String,
+    path: String,
+) -> Result<String, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let ws = queries::get_workspace(&db, &workspace_id).map_err(|e| e.to_string())?;
+    let repo = queries::get_repo(&db, &ws.repo_id).map_err(|e| e.to_string())?;
+    worktree::diff::read_file_at_ref(&ws.worktree_path, &repo.default_branch, &path)
+}
+
 // --- Checkpoint commands ---
 
 #[tauri::command]
@@ -733,6 +745,7 @@ pub fn run() {
             read_file,
             get_diff,
             get_file_diff,
+            read_file_at_ref,
             revert_to_checkpoint,
             run_script,
             create_terminal,
