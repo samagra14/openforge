@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { GitBranch, Archive } from "lucide-react";
+import { GitBranch } from "lucide-react";
 import { commands, type WorkspaceStatusInfo } from "../../lib/tauri";
 import type { Workspace } from "../../stores/workspace";
 
 interface Props {
   workspace: Workspace;
   anchorRect: DOMRect | null;
-  onArchive: () => void;
   onContinue: () => void;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
@@ -57,7 +56,6 @@ function statusLabel(status: string): string {
 export function WorkspaceHoverCard({
   workspace,
   anchorRect,
-  onArchive,
   onContinue,
   onMouseEnter,
   onMouseLeave,
@@ -197,16 +195,6 @@ export function WorkspaceHoverCard({
               }}
             >
               Continue
-            </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onArchive();
-              }}
-              className="p-1 rounded-md transition-colors hover-bg"
-              title="Archive workspace"
-            >
-              <Archive size={13} style={{ color: "var(--text-tertiary)" }} />
             </button>
           </div>
         </div>
