@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback } from "react";
+import { Archive } from "lucide-react";
 import { useWorkspaceStore, type Workspace } from "../../stores/workspace";
 import { commands } from "../../lib/tauri";
 import { WorkspaceHoverCard } from "./WorkspaceHoverCard";
@@ -71,16 +72,16 @@ export function WorkspaceList({ workspaces }: Props) {
         const isActive = ws.id === activeWorkspaceId;
 
         return (
-          <button
+          <div
             key={ws.id}
-            onClick={() => setActiveWorkspace(ws.id)}
-            onMouseEnter={(e) => showCard(ws.id, e.currentTarget)}
-            onMouseLeave={hideCard}
-            className="w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm hover-bg transition-colors"
+            className="group w-full flex items-center gap-3 px-2.5 py-2 rounded-lg text-sm hover-bg transition-colors cursor-pointer"
             style={{
               background: isActive ? "var(--bg-tertiary)" : "transparent",
               color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
             }}
+            onClick={() => setActiveWorkspace(ws.id)}
+            onMouseEnter={(e) => showCard(ws.id, e.currentTarget)}
+            onMouseLeave={hideCard}
           >
             <span
               className="w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 font-mono"
@@ -93,7 +94,7 @@ export function WorkspaceList({ workspaces }: Props) {
             >
               {index + 1}
             </span>
-            <div className="text-left truncate">
+            <div className="text-left truncate min-w-0 flex-1">
               <span
                 className="block truncate"
                 style={{
@@ -112,7 +113,17 @@ export function WorkspaceList({ workspaces }: Props) {
                 </span>
               )}
             </div>
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleArchive(ws);
+              }}
+              className="opacity-0 group-hover:opacity-100 p-1 rounded-md transition-all hover-bg flex-shrink-0"
+              title="Archive workspace"
+            >
+              <Archive size={13} style={{ color: "var(--text-tertiary)" }} />
+            </button>
+          </div>
         );
       })}
 
@@ -120,7 +131,6 @@ export function WorkspaceList({ workspaces }: Props) {
         <WorkspaceHoverCard
           workspace={hoveredWorkspace}
           anchorRect={anchorRect}
-          onArchive={() => handleArchive(hoveredWorkspace)}
           onContinue={() => {
             setActiveWorkspace(hoveredWorkspace.id);
             setHoveredId(null);
