@@ -1,6 +1,6 @@
 {
   "productName": "OpenForge",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "identifier": "com.openforge.app",
   "build": {
     "frontendDist": "../dist",
