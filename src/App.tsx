@@ -38,6 +38,19 @@ export default function App() {
     commands.listRepos().then(setRepos).catch(console.error);
   }, [setRepos]);
 
+  // Load sessions from DB when switching workspaces
+  useEffect(() => {
+    if (!activeWorkspaceId) return;
+    let cancelled = false;
+    commands.listSessions(activeWorkspaceId).then((dbSessions) => {
+      if (cancelled) return;
+      const { sessions: current } = useSessionStore.getState();
+      const others = current.filter((s) => s.workspace_id !== activeWorkspaceId);
+      useSessionStore.getState().setSessions([...others, ...dbSessions]);
+    }).catch(console.error);
+    return () => { cancelled = true; };
+  }, [activeWorkspaceId]);
+
   // Auto-create chat tabs for existing sessions when switching workspaces
   useEffect(() => {
     if (!activeWorkspaceId) return;

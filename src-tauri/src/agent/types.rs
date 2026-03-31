@@ -4,17 +4,31 @@ use serde::{Deserialize, Serialize};
 ///
 /// Each line is one of:
 ///   {"type":"assistant","message":{...}}       – cumulative snapshot of assistant message
+///   {"type":"user","message":{...}}            – user event (tool results, prompts)
 ///   {"type":"tool_result","content":"...","tool_use_id":"...","is_error":false}
 ///   {"type":"result","result":"...","session_id":"...","cost_usd":0.001,...}
+///
+/// Sub-agent events carry `parent_tool_use_id` linking them to the parent
+/// Agent tool_use that spawned them.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum StreamEvent {
     #[serde(rename = "assistant")]
-    Assistant { message: AssistantMessage },
+    Assistant {
+        message: AssistantMessage,
+        /// Set when this event is from a sub-agent (Agent tool).
+        /// Value is the tool_use_id of the parent Agent call.
+        #[serde(default)]
+        parent_tool_use_id: Option<String>,
+    },
 
-    /// Tool results come as `{"type":"user","message":{"role":"user","content":[{"type":"tool_result",...}]}}`
+    /// User events contain tool results or sub-agent prompts.
     #[serde(rename = "user")]
-    User { message: UserMessage },
+    User {
+        message: UserMessage,
+        #[serde(default)]
+        parent_tool_use_id: Option<String>,
+    },
 
     #[serde(rename = "tool_result")]
     ToolResult {
@@ -22,6 +36,8 @@ pub enum StreamEvent {
         content: Option<serde_json::Value>,
         #[serde(default)]
         is_error: bool,
+        #[serde(default)]
+        parent_tool_use_id: Option<String>,
     },
 
     #[serde(rename = "result")]
@@ -59,23 +75,14 @@ pub struct Usage {
     pub output_tokens: Option<u64>,
 }
 
-/// The user message object inside a "user" event (contains tool results).
+/// The user message object inside a "user" event.
+/// Content is stored as raw JSON to handle mixed block types
+/// (tool_result, text, etc.) without failing on unknown variants.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserMessage {
     pub role: String,
-    pub content: Vec<UserContentBlock>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
-pub enum UserContentBlock {
-    #[serde(rename = "tool_result")]
-    ToolResult {
-        tool_use_id: String,
-        content: Option<serde_json::Value>,
-        #[serde(default)]
-        is_error: bool,
-    },
+    #[serde(default)]
+    pub content: serde_json::Value,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -120,6 +127,8 @@ pub struct ToolCallInfo {
     pub status: String, // "running" | "done" | "error"
     #[serde(skip_serializing_if = "Option::is_none")]
     pub tool_use_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sub_tool_calls: Option<Vec<ToolCallInfo>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -134,4 +143,11 @@ pub struct AgentCompleteEvent {
     pub cost_usd: f64,
     pub duration_ms: u64,
     pub claude_session_id: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AgentErrorEvent {
+    pub session_id: String,
+    pub error: String,
+    pub error_type: String, // "session_expired" | "unknown"
 }

@@ -1,8 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useSessionStore } from "../../stores/session";
-import type { Message } from "../../stores/session";
+import type { Message, ToolCall } from "../../stores/session";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
+import { commands } from "../../lib/tauri";
 
 interface Props {
   sessionId: string;
@@ -14,18 +15,98 @@ const EMPTY_MESSAGES: Message[] = [];
 export function ChatView({ sessionId }: Props) {
   const rawMessages = useSessionStore((s) => s.messages[sessionId]);
   const messages = rawMessages ?? EMPTY_MESSAGES;
+  const messagesLoaded = useSessionStore((s) => s.messagesLoaded.has(sessionId));
+
+  // Lazy-load messages from Claude's JSONL when opening a persisted session
+  useEffect(() => {
+    if (messagesLoaded) return;
+    if (messages.length > 0) return; // Already have messages from streaming
+
+    let cancelled = false;
+    console.log(`[ChatView] Loading history for session ${sessionId}, messagesLoaded=${messagesLoaded}, messages.length=${messages.length}`);
+    commands.loadSessionHistory(sessionId).then((history) => {
+      if (cancelled) return;
+      console.log(`[ChatView] Got ${history.length} messages from backend for session ${sessionId}`, history.slice(0, 2));
+      if (history.length === 0) {
+        useSessionStore.getState().markMessagesLoaded(sessionId);
+        return;
+      }
+
+      const parsed: Message[] = history.map((msg) => {
+        let toolCalls: ToolCall[] | undefined;
+        // tool_calls comes as a JSON string from the backend history loader
+        const rawToolCalls = (msg as unknown as { tool_calls?: string }).tool_calls;
+        if (rawToolCalls) {
+          try {
+            const tcArray = JSON.parse(rawToolCalls) as Array<{
+              name: string;
+              input: Record<string, unknown>;
+              output?: string;
+              sub_tool_calls?: Array<{
+                name: string;
+                input: Record<string, unknown>;
+                output?: string;
+              }>;
+            }>;
+            toolCalls = tcArray.map((tc) => ({
+              name: tc.name,
+              input: tc.input,
+              output: tc.output,
+              status: "done" as const,
+              sub_tool_calls: tc.sub_tool_calls?.map((stc) => ({
+                name: stc.name,
+                input: stc.input,
+                output: stc.output,
+                status: "done" as const,
+              })),
+            }));
+          } catch {
+            // Ignore parse errors for tool_calls
+          }
+        }
+
+        return {
+          id: msg.id,
+          session_id: sessionId,
+          role: msg.role,
+          content: msg.content,
+          tool_calls: toolCalls,
+          timestamp: msg.timestamp,
+        };
+      });
+
+      useSessionStore.getState().setMessages(sessionId, parsed);
+      useSessionStore.getState().markMessagesLoaded(sessionId);
+    }).catch(console.error);
+
+    return () => { cancelled = true; };
+  }, [sessionId, messagesLoaded, messages.length]);
 
   const session = useSessionStore((s) =>
     s.sessions.find((sess) => sess.id === sessionId)
   );
   const scrollRef = useRef<HTMLDivElement>(null);
+  const isNearBottomRef = useRef(true);
 
   const messageCount = messages.length;
   const lastMessageContent = messages[messages.length - 1]?.content.length ?? 0;
 
-  // Auto-scroll to bottom on new messages or content growth
+  // Track whether user is near the bottom of the scroll container
   useEffect(() => {
-    if (scrollRef.current) {
+    const el = scrollRef.current;
+    if (!el) return;
+    const handleScroll = () => {
+      const threshold = 150;
+      isNearBottomRef.current =
+        el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    };
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // Auto-scroll only if user is near the bottom
+  useEffect(() => {
+    if (scrollRef.current && isNearBottomRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messageCount, lastMessageContent]);

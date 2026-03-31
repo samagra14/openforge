@@ -5,6 +5,7 @@ export interface ToolCall {
   input: Record<string, unknown>;
   output?: string;
   status: "running" | "done" | "error";
+  sub_tool_calls?: ToolCall[];
 }
 
 export interface Message {
@@ -35,12 +36,14 @@ interface SessionStore {
   sessions: Session[];
   messages: Record<string, Message[]>;
   activeSessionId: string | null;
+  messagesLoaded: Set<string>;
   setActiveSession: (id: string | null) => void;
   addSession: (session: Session) => void;
   setSessions: (sessions: Session[]) => void;
   updateSessionStatus: (id: string, status: Session["status"]) => void;
   updateSessionCost: (id: string, cost: number, tokens: number) => void;
   updateSessionClaudeId: (id: string, claudeId: string) => void;
+  markMessagesLoaded: (sessionId: string) => void;
   addMessage: (sessionId: string, message: Message) => void;
   upsertMessage: (sessionId: string, message: Message) => void;
   setMessages: (sessionId: string, messages: Message[]) => void;
@@ -59,6 +62,7 @@ export const useSessionStore = create<SessionStore>((set) => ({
   sessions: [],
   messages: {},
   activeSessionId: null,
+  messagesLoaded: new Set<string>(),
   setActiveSession: (id) => set({ activeSessionId: id }),
   addSession: (session) =>
     set((s) => ({ sessions: [...s.sessions, session] })),
@@ -83,6 +87,12 @@ export const useSessionStore = create<SessionStore>((set) => ({
           : session
       ),
     })),
+  markMessagesLoaded: (sessionId) =>
+    set((s) => {
+      const next = new Set(s.messagesLoaded);
+      next.add(sessionId);
+      return { messagesLoaded: next };
+    }),
   addMessage: (sessionId, message) =>
     set((s) => {
       const existing = s.messages[sessionId] ?? [];
