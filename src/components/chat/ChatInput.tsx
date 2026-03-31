@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import {
   ArrowUp,
   Loader2,
@@ -9,18 +9,43 @@ import {
   Plus,
 } from "lucide-react";
 import { useSessionStore } from "../../stores/session";
-import { commands } from "../../lib/tauri";
+import { commands, type AgentProviderInfo } from "../../lib/tauri";
 
 interface Props {
   sessionId: string;
 }
 
+/** Compact display names for providers */
+const PROVIDER_ICONS: Record<string, string> = {
+  "claude-code": "C",
+  gemini: "G",
+  codex: "Cx",
+  aider: "A",
+  goose: "Go",
+  copilot: "Cp",
+  cline: "Cl",
+  opencode: "OC",
+  amp: "Am",
+  warp: "W",
+  "qwen-code": "Q",
+  crush: "Cr",
+  augment: "Au",
+  kilo: "K",
+  kiro: "Ki",
+  droid: "Dr",
+  "go-code": "GC",
+  chaterm: "Ch",
+};
+
 export function ChatInput({ sessionId }: Props) {
   const [value, setValue] = useState("");
   const [sending, setSending] = useState(false);
+  const [providers, setProviders] = useState<AgentProviderInfo[]>([]);
+  const [selectedProvider, setSelectedProvider] = useState<string>("claude-code");
   const [model, setModel] = useState("sonnet");
   const [thinking, setThinking] = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [showProviderMenu, setShowProviderMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const session = useSessionStore((s) =>
     s.sessions.find((sess) => sess.id === sessionId)
@@ -28,6 +53,24 @@ export function ChatInput({ sessionId }: Props) {
   const addMessage = useSessionStore((s) => s.addMessage);
   const isRunning = session?.status === "running";
   const disabled = isRunning || sending;
+
+  // Load providers on mount
+  useEffect(() => {
+    commands.listProviders().then((p) => {
+      setProviders(p);
+    }).catch(console.error);
+  }, []);
+
+  // Sync provider/model from session
+  useEffect(() => {
+    if (session) {
+      setSelectedProvider(session.agent_provider || "claude-code");
+      setModel(session.model);
+    }
+  }, [session?.agent_provider, session?.model]);
+
+  const currentProvider = providers.find((p) => p.id === selectedProvider);
+  const currentModels = currentProvider?.models ?? [];
 
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
@@ -82,11 +125,9 @@ export function ChatInput({ sessionId }: Props) {
   const hasText = value.trim().length > 0;
 
   const modelLabel =
-    model === "opus"
-      ? "Opus 4.6"
-      : model === "haiku"
-        ? "Haiku 4.5"
-        : "Sonnet 4.6";
+    currentModels.find((m) => m.id === model)?.name ?? model;
+  const providerLabel = currentProvider?.name ?? selectedProvider;
+  const providerIcon = PROVIDER_ICONS[selectedProvider] ?? "?";
 
   return (
     <div className="max-w-3xl mx-auto w-full px-6 pb-5">
@@ -109,7 +150,7 @@ export function ChatInput({ sessionId }: Props) {
             onKeyDown={handleKeyDown}
             placeholder={
               isRunning
-                ? "Claude is working..."
+                ? `${providerLabel} is working...`
                 : "Ask to make changes, @mention files, run /commands"
             }
             disabled={disabled}
@@ -164,62 +205,137 @@ export function ChatInput({ sessionId }: Props) {
         {/* Bottom toolbar */}
         <div className="flex items-center justify-between px-4 pb-3">
           <div className="flex items-center gap-1">
-            {/* Model selector */}
+            {/* Provider selector */}
             <div className="relative">
               <button
-                onClick={() => setShowModelMenu(!showModelMenu)}
+                onClick={() => setShowProviderMenu(!showProviderMenu)}
                 className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs hover-bg transition-colors"
                 style={{ color: "var(--text-secondary)" }}
               >
                 <span
-                  className="w-1.5 h-1.5 rounded-full"
-                  style={{ background: "var(--success)" }}
-                />
-                {modelLabel}
+                  className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                  style={{
+                    background: "var(--accent)",
+                    color: "white",
+                    letterSpacing: "-0.02em",
+                  }}
+                >
+                  {providerIcon}
+                </span>
+                {providerLabel}
                 <ChevronDown size={11} style={{ color: "var(--text-tertiary)" }} />
               </button>
 
-              {showModelMenu && (
+              {showProviderMenu && (
                 <>
                   <div
                     className="fixed inset-0 z-40"
-                    onClick={() => setShowModelMenu(false)}
+                    onClick={() => setShowProviderMenu(false)}
                   />
                   <div
-                    className="absolute bottom-full left-0 mb-1.5 rounded-xl py-2 min-w-[160px] z-50 animate-fade-in-scale"
+                    className="absolute bottom-full left-0 mb-1.5 rounded-xl py-2 min-w-[220px] max-h-[320px] overflow-y-auto z-50 animate-fade-in-scale"
                     style={{
                       background: "var(--bg-elevated)",
                       border: "1px solid var(--border-strong)",
                       boxShadow: "var(--shadow-lg)",
                     }}
                   >
-                    {["sonnet", "opus", "haiku"].map((m) => (
+                    {providers.map((p) => (
                       <button
-                        key={m}
+                        key={p.id}
                         onClick={() => {
-                          setModel(m);
-                          setShowModelMenu(false);
+                          setSelectedProvider(p.id);
+                          setModel(p.default_model);
+                          setShowProviderMenu(false);
+                          commands.updateSessionProvider(sessionId, p.id, p.default_model).catch(console.error);
                         }}
-                        className="w-full text-left px-4 py-2 text-xs hover-bg flex items-center gap-2 transition-colors"
+                        className="w-full text-left px-4 py-2 text-xs hover-bg flex items-center gap-2.5 transition-colors"
                         style={{
                           color:
-                            m === model
+                            p.id === selectedProvider
                               ? "var(--text-primary)"
                               : "var(--text-secondary)",
-                          fontWeight: m === model ? 500 : 400,
+                          fontWeight: p.id === selectedProvider ? 500 : 400,
                         }}
                       >
-                        {m === "opus"
-                          ? "Opus 4.6"
-                          : m === "haiku"
-                            ? "Haiku 4.5"
-                            : "Sonnet 4.6"}
+                        <span
+                          className="w-5 h-5 rounded-md flex items-center justify-center text-[10px] font-bold flex-shrink-0"
+                          style={{
+                            background:
+                              p.id === selectedProvider
+                                ? "var(--accent)"
+                                : "var(--bg-tertiary)",
+                            color:
+                              p.id === selectedProvider
+                                ? "white"
+                                : "var(--text-tertiary)",
+                          }}
+                        >
+                          {PROVIDER_ICONS[p.id] ?? "?"}
+                        </span>
+                        {p.name}
                       </button>
                     ))}
                   </div>
                 </>
               )}
             </div>
+
+            {/* Model selector */}
+            {currentModels.length > 1 && (
+              <div className="relative">
+                <button
+                  onClick={() => setShowModelMenu(!showModelMenu)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs hover-bg transition-colors"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full"
+                    style={{ background: "var(--success)" }}
+                  />
+                  {modelLabel}
+                  <ChevronDown size={11} style={{ color: "var(--text-tertiary)" }} />
+                </button>
+
+                {showModelMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowModelMenu(false)}
+                    />
+                    <div
+                      className="absolute bottom-full left-0 mb-1.5 rounded-xl py-2 min-w-[180px] z-50 animate-fade-in-scale"
+                      style={{
+                        background: "var(--bg-elevated)",
+                        border: "1px solid var(--border-strong)",
+                        boxShadow: "var(--shadow-lg)",
+                      }}
+                    >
+                      {currentModels.map((m) => (
+                        <button
+                          key={m.id}
+                          onClick={() => {
+                            setModel(m.id);
+                            setShowModelMenu(false);
+                            commands.updateSessionProvider(sessionId, selectedProvider, m.id).catch(console.error);
+                          }}
+                          className="w-full text-left px-4 py-2 text-xs hover-bg flex items-center gap-2 transition-colors"
+                          style={{
+                            color:
+                              m.id === model
+                                ? "var(--text-primary)"
+                                : "var(--text-secondary)",
+                            fontWeight: m.id === model ? 500 : 400,
+                          }}
+                        >
+                          {m.name}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Feedback */}
             <button
@@ -229,17 +345,19 @@ export function ChatInput({ sessionId }: Props) {
               <ThumbsDown size={13} style={{ color: "var(--text-tertiary)" }} />
             </button>
 
-            {/* Thinking toggle */}
-            <button
-              onClick={() => setThinking(!thinking)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors hover-bg"
-              style={{
-                color: thinking ? "var(--accent)" : "var(--text-tertiary)",
-              }}
-            >
-              <Brain size={13} />
-              Thinking
-            </button>
+            {/* Thinking toggle (Claude Code only) */}
+            {selectedProvider === "claude-code" && (
+              <button
+                onClick={() => setThinking(!thinking)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs transition-colors hover-bg"
+                style={{
+                  color: thinking ? "var(--accent)" : "var(--text-tertiary)",
+                }}
+              >
+                <Brain size={13} />
+                Thinking
+              </button>
+            )}
           </div>
 
           {/* Right side */}

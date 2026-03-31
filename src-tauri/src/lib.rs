@@ -11,6 +11,7 @@ use rusqlite::Connection;
 use tauri::{AppHandle, State};
 
 use crate::agent::manager::AgentManager;
+use crate::agent::provider;
 use crate::db::queries;
 use crate::state::AppState;
 use crate::terminal::pty::TerminalManager;
@@ -252,12 +253,15 @@ fn create_session(
     state: State<AppState>,
     workspace_id: String,
     model: String,
+    agent_provider: Option<String>,
 ) -> Result<queries::Session, String> {
+    let provider_id = agent_provider.unwrap_or_else(|| "claude-code".to_string());
     let session = queries::Session {
         id: uuid::Uuid::new_v4().to_string(),
         workspace_id,
         title: "New Chat".to_string(),
         model,
+        agent_provider: provider_id,
         status: "idle".to_string(),
         claude_session_id: None,
         token_count: 0,
@@ -283,7 +287,7 @@ fn send_message(
     // Get session info
     let session = {
         let mut stmt = db
-            .prepare("SELECT id, workspace_id, title, model, status, claude_session_id, token_count, cost_usd, created_at FROM sessions WHERE id = ?1")
+            .prepare("SELECT id, workspace_id, title, model, agent_provider, status, claude_session_id, token_count, cost_usd, created_at FROM sessions WHERE id = ?1")
             .map_err(|e| e.to_string())?;
         stmt.query_row(rusqlite::params![session_id], |row| {
             Ok(queries::Session {
@@ -291,11 +295,12 @@ fn send_message(
                 workspace_id: row.get(1)?,
                 title: row.get(2)?,
                 model: row.get(3)?,
-                status: row.get(4)?,
-                claude_session_id: row.get(5)?,
-                token_count: row.get(6)?,
-                cost_usd: row.get(7)?,
-                created_at: row.get(8)?,
+                agent_provider: row.get(4)?,
+                status: row.get(5)?,
+                claude_session_id: row.get(6)?,
+                token_count: row.get(7)?,
+                cost_usd: row.get(8)?,
+                created_at: row.get(9)?,
             })
         })
         .map_err(|e| e.to_string())?
@@ -332,6 +337,7 @@ fn send_message(
     am.spawn_agent(
         session_id,
         ws.worktree_path,
+        session.agent_provider,
         session.model,
         content,
         session.claude_session_id,
@@ -542,6 +548,25 @@ fn close_terminal(state: State<AppState>, terminal_id: String) -> Result<(), Str
     tm.close_terminal(&terminal_id)
 }
 
+// --- Provider commands ---
+
+#[tauri::command]
+fn list_providers() -> Vec<provider::AgentProvider> {
+    provider::all_providers()
+}
+
+#[tauri::command]
+fn update_session_provider(
+    state: State<AppState>,
+    session_id: String,
+    agent_provider: String,
+    model: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    queries::update_session_provider(&db, &session_id, &agent_provider, &model)
+        .map_err(|e| e.to_string())
+}
+
 // --- Helpers ---
 
 fn get_repo_name(path: &str) -> String {
@@ -741,6 +766,8 @@ pub fn run() {
             send_message,
             stop_agent,
             get_messages,
+            list_providers,
+            update_session_provider,
             list_files,
             read_file,
             get_diff,

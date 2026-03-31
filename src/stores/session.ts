@@ -24,6 +24,7 @@ export interface Session {
   workspace_id: string;
   title: string;
   model: string;
+  agent_provider: string;
   status: "idle" | "running" | "waiting" | "error";
   claude_session_id?: string;
   token_count: number;

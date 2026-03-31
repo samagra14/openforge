@@ -44,7 +44,7 @@ export function ChatView({ sessionId }: Props) {
             className="text-sm"
             style={{ color: "var(--text-tertiary)", lineHeight: 1.6 }}
           >
-            Ask Claude to make changes, explore code, or help you build something.
+            Ask an agent to make changes, explore code, or help you build something.
           </p>
         </div>
       </div>
@@ -72,7 +72,7 @@ export function ChatView({ sessionId }: Props) {
               className="text-sm"
               style={{ color: "var(--text-secondary)" }}
             >
-              Claude is working...
+              Agent is working...
             </span>
           </div>
         )}
