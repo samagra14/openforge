@@ -135,6 +135,10 @@ impl AgentManager {
             // The latest message_id from the parent assistant.
             let mut current_message_id: Option<String> = None;
             let mut current_content = String::new();
+            // Track thinking and text separately so incremental events
+            // (one block type per event) don't overwrite each other.
+            let mut current_thinking_blocks: Vec<String> = Vec::new();
+            let mut current_text: String = String::new();
             let mut current_tool_calls: Vec<ToolCallInfo> = Vec::new();
 
             // Sub-agent tool calls, keyed by parent_tool_use_id.
@@ -236,26 +240,33 @@ impl AgentManager {
                                 );
                             }
                         } else {
-                            // ── Parent assistant event (cumulative snapshot) ──
+                            // ── Parent assistant event (incremental — one block per event) ──
                             let msg_id = message.id.clone();
 
                             if current_message_id.as_deref() != Some(&msg_id) {
                                 current_message_id = Some(msg_id.clone());
                                 current_content.clear();
+                                current_thinking_blocks.clear();
+                                current_text.clear();
                                 current_tool_calls.clear();
                                 // Don't clear subagent_tool_calls — they persist across turns
                             }
 
-                            let mut text_parts: Vec<String> = Vec::new();
                             let mut tool_calls_snapshot: Vec<ToolCallInfo> = Vec::new();
+                            let mut has_thinking = false;
+                            let mut has_text = false;
+                            let mut thinking_parts: Vec<String> = Vec::new();
+                            let mut text_part = String::new();
 
                             for block in &message.content {
                                 match block {
                                     ContentBlock::Text { text } => {
-                                        text_parts.push(text.clone());
+                                        text_part = text.clone();
+                                        has_text = true;
                                     }
                                     ContentBlock::Thinking { thinking, .. } => {
-                                        text_parts.push(format!("<thinking>{thinking}</thinking>"));
+                                        thinking_parts.push(thinking.clone());
+                                        has_thinking = true;
                                     }
                                     ContentBlock::ToolUse { id, name, input, .. } => {
                                         let (output, is_error) = tool_outputs
@@ -281,8 +292,40 @@ impl AgentManager {
                                 }
                             }
 
-                            current_content = text_parts.join("");
-                            current_tool_calls = tool_calls_snapshot;
+                            // Update thinking/text independently so incremental
+                            // events don't erase the other block type.
+                            if has_thinking {
+                                current_thinking_blocks = thinking_parts;
+                            }
+                            if has_text {
+                                current_text = text_part;
+                            }
+
+                            // Rebuild combined content from tracked blocks
+                            let mut content_parts: Vec<String> = Vec::new();
+                            for t in &current_thinking_blocks {
+                                content_parts.push(format!("<thinking>{t}</thinking>"));
+                            }
+                            if !current_text.is_empty() {
+                                content_parts.push(current_text.clone());
+                            }
+                            current_content = content_parts.join("");
+
+                            // Merge tool calls by tool_use_id instead of replacing.
+                            // Claude's stream-json emits each new tool_use block as
+                            // a separate incremental event for the same message id,
+                            // so we must accumulate rather than overwrite.
+                            for new_tc in tool_calls_snapshot {
+                                if let Some(existing) = current_tool_calls.iter_mut().find(|t| {
+                                    t.tool_use_id == new_tc.tool_use_id
+                                }) {
+                                    existing.input = new_tc.input;
+                                    existing.output = new_tc.output;
+                                    existing.status = new_tc.status;
+                                } else {
+                                    current_tool_calls.push(new_tc);
+                                }
+                            }
 
                             let enriched = attach_subagent_calls(&current_tool_calls, &subagent_tool_calls);
                             let _ = handle.emit(
