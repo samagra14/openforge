@@ -5,7 +5,7 @@ mod state;
 mod terminal;
 mod worktree;
 
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
 use rusqlite::Connection;
 use tauri::{AppHandle, State};
@@ -272,6 +272,15 @@ fn create_session(
 }
 
 #[tauri::command]
+fn list_sessions(
+    state: State<AppState>,
+    workspace_id: String,
+) -> Result<Vec<queries::Session>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    queries::list_sessions(&db, &workspace_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn send_message(
     state: State<AppState>,
     app_handle: AppHandle,
@@ -325,6 +334,8 @@ fn send_message(
     // Update session status
     queries::update_session_status(&db, &session_id, "running").map_err(|e| e.to_string())?;
 
+    // Clone the DB Arc for the agent reader thread
+    let db_arc = state.db.clone();
     drop(db); // Release db lock before spawning agent
 
     // Spawn agent
@@ -336,6 +347,7 @@ fn send_message(
         content,
         session.claude_session_id,
         app_handle,
+        db_arc,
     )?;
 
     Ok(())
@@ -357,6 +369,83 @@ fn get_messages(
 ) -> Result<Vec<queries::Message>, String> {
     let db = state.db.lock().map_err(|e| e.to_string())?;
     queries::list_messages(&db, &session_id).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+fn load_session_history(
+    state: State<AppState>,
+    session_id: String,
+) -> Result<Vec<agent::history::HistoryMessage>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+
+    // Look up session to get claude_session_id and workspace
+    let session = {
+        let mut stmt = db
+            .prepare("SELECT id, workspace_id, claude_session_id FROM sessions WHERE id = ?1")
+            .map_err(|e| e.to_string())?;
+        stmt.query_row(rusqlite::params![session_id], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, Option<String>>(2)?,
+            ))
+        })
+        .map_err(|e| e.to_string())?
+    };
+
+    let (_id, workspace_id, claude_session_id) = session;
+
+    let ws = queries::get_workspace(&db, &workspace_id).map_err(|e| e.to_string())?;
+
+    // If claude_session_id is not set, try to discover it by matching the first user message
+    let claude_sid = match claude_session_id {
+        Some(sid) if !sid.is_empty() => sid,
+        _ => {
+            // Get the first user message for this session from SQLite
+            let first_msg = db
+                .prepare("SELECT content FROM messages WHERE session_id = ?1 AND role = 'user' ORDER BY timestamp ASC LIMIT 1")
+                .and_then(|mut stmt| {
+                    stmt.query_row(rusqlite::params![session_id], |row| row.get::<_, String>(0))
+                });
+
+            match first_msg {
+                Ok(content) => {
+                    match agent::history::discover_session_id(&ws.worktree_path, &content) {
+                        Some(discovered_sid) => {
+                            eprintln!("[openforge] Discovered claude_session_id={discovered_sid} for session {session_id}");
+                            // Persist it so we don't have to scan again
+                            let _ = queries::update_session_claude_id(&db, &session_id, &discovered_sid);
+                            discovered_sid
+                        }
+                        None => return Ok(Vec::new()),
+                    }
+                }
+                Err(_) => return Ok(Vec::new()), // No messages yet
+            }
+        }
+    };
+
+    // Read from Claude Code's JSONL file — return empty on error (file may not exist)
+    eprintln!("[openforge] Loading history for session {session_id}, claude_sid={claude_sid}, worktree={}", ws.worktree_path);
+    match agent::history::load_history(&ws.worktree_path, &claude_sid) {
+        Ok(messages) => {
+            eprintln!("[openforge] Loaded {} messages from JSONL for session {session_id}", messages.len());
+            Ok(messages)
+        }
+        Err(e) => {
+            eprintln!("[openforge] Could not load session history: {e}");
+            Ok(Vec::new())
+        }
+    }
+}
+
+#[tauri::command]
+fn clear_session_claude_id(
+    state: State<AppState>,
+    session_id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    queries::clear_session_claude_id(&db, &session_id).map_err(|e| e.to_string())
 }
 
 // --- File commands ---
@@ -717,8 +806,14 @@ pub fn run() {
     let conn = Connection::open(&db_path).expect("Failed to open database");
     db::schema::initialize(&conn).expect("Failed to initialize database schema");
 
+    // Clean up any sessions stuck in "running" from a previous crash
+    let cleaned = queries::reset_running_sessions(&conn).unwrap_or(0);
+    if cleaned > 0 {
+        eprintln!("[OpenForge] Cleaned up {cleaned} stale running sessions on startup");
+    }
+
     let app_state = AppState {
-        db: Mutex::new(conn),
+        db: Arc::new(Mutex::new(conn)),
         agent_manager: Mutex::new(AgentManager::new()),
         terminal_manager: Mutex::new(TerminalManager::new()),
     };
@@ -738,9 +833,12 @@ pub fn run() {
             restore_workspace,
             get_workspace_status,
             create_session,
+            list_sessions,
             send_message,
             stop_agent,
             get_messages,
+            load_session_history,
+            clear_session_claude_id,
             list_files,
             read_file,
             get_diff,

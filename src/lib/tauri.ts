@@ -15,17 +15,20 @@ export interface DiffEntry {
   status: string;
 }
 
+export interface AgentToolCallPayload {
+  name: string;
+  input: Record<string, unknown>;
+  output?: string;
+  status: string;
+  sub_tool_calls?: AgentToolCallPayload[];
+}
+
 export interface AgentMessagePayload {
   session_id: string;
   message_id: string;
   role: string;
   content: string;
-  tool_calls: Array<{
-    name: string;
-    input: Record<string, unknown>;
-    output?: string;
-    status: string;
-  }>;
+  tool_calls: AgentToolCallPayload[];
 }
 
 export interface AgentCompletePayload {
@@ -55,6 +58,12 @@ export interface ScriptExitPayload {
   workspace_id: string;
   script_type: string;
   exit_code: number;
+}
+
+export interface AgentErrorPayload {
+  session_id: string;
+  error: string;
+  error_type: string;
 }
 
 export interface WorkspaceStatusInfo {
@@ -90,11 +99,17 @@ export const commands = {
 
   createSession: (workspaceId: string, model: string) =>
     invoke<Session>("create_session", { workspaceId, model }),
+  listSessions: (workspaceId: string) =>
+    invoke<Session[]>("list_sessions", { workspaceId }),
   sendMessage: (sessionId: string, content: string) =>
     invoke("send_message", { sessionId, content }),
   stopAgent: (sessionId: string) => invoke("stop_agent", { sessionId }),
   getMessages: (sessionId: string) =>
     invoke<Message[]>("get_messages", { sessionId }),
+  loadSessionHistory: (sessionId: string) =>
+    invoke<Message[]>("load_session_history", { sessionId }),
+  clearSessionClaudeId: (sessionId: string) =>
+    invoke("clear_session_claude_id", { sessionId }),
 
   listFiles: (workspaceId: string) =>
     invoke<FileEntry[]>("list_files", { workspaceId }),
@@ -132,6 +147,8 @@ export const events = {
     listen<AgentStatusPayload>("agent:status", (e) => handler(e.payload)),
   onAgentComplete: (handler: (payload: AgentCompletePayload) => void): Promise<UnlistenFn> =>
     listen<AgentCompletePayload>("agent:complete", (e) => handler(e.payload)),
+  onAgentError: (handler: (payload: AgentErrorPayload) => void): Promise<UnlistenFn> =>
+    listen<AgentErrorPayload>("agent:error", (e) => handler(e.payload)),
   onTerminalData: (handler: (payload: TerminalDataPayload) => void): Promise<UnlistenFn> =>
     listen<TerminalDataPayload>("terminal:data", (e) => handler(e.payload)),
   onScriptOutput: (handler: (payload: ScriptOutputPayload) => void): Promise<UnlistenFn> =>

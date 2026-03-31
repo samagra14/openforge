@@ -264,3 +264,20 @@ pub fn delete_messages_after(conn: &Connection, session_id: &str, timestamp: &st
     )?;
     Ok(())
 }
+
+/// Reset any sessions stuck in "running" status (e.g. after a crash).
+pub fn reset_running_sessions(conn: &Connection) -> Result<usize> {
+    conn.execute(
+        "UPDATE sessions SET status = 'idle' WHERE status = 'running'",
+        [],
+    )
+}
+
+/// Clear the claude_session_id for a session (e.g. when the session has expired).
+pub fn clear_session_claude_id(conn: &Connection, id: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE sessions SET claude_session_id = NULL WHERE id = ?1",
+        params![id],
+    )?;
+    Ok(())
+}

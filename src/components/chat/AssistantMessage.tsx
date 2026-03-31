@@ -248,13 +248,17 @@ function InlineToolCall({ tc }: { tc: ToolCall }) {
 
 /** Card treatment for Agent calls */
 function AgentToolCall({ tc }: { tc: ToolCall }) {
-  const [expanded, setExpanded] = useState(false);
+  const isRunning = tc.status === "running";
+  const hasContent = (tc.sub_tool_calls?.length ?? 0) > 0 || !!tc.output;
+  const [expanded, setExpanded] = useState(isRunning || hasContent);
   const val = (tc.input && typeof tc.input === "object" ? tc.input : {}) as Record<string, unknown>;
   const description = val.description
     ? String(val.description).slice(0, 60)
     : val.prompt
       ? String(val.prompt).slice(0, 60)
       : "";
+
+  const subCalls = tc.sub_tool_calls ?? [];
 
   return (
     <div className="tool-card tool-card-agent">
@@ -287,21 +291,27 @@ function AgentToolCall({ tc }: { tc: ToolCall }) {
             className="mx-4"
             style={{ borderTop: "1px solid var(--border-strong)" }}
           />
-          <div className="px-4 py-3.5 overflow-auto" style={{ maxHeight: 280 }}>
+
+          {/* Sub-agent tool calls */}
+          {subCalls.length > 0 && (
+            <div className="px-4 pt-2 pb-1 space-y-0.5">
+              {subCalls.map((stc, i) => (
+                <InlineToolCall key={i} tc={stc} />
+              ))}
+            </div>
+          )}
+
+          {/* Agent final output */}
+          <div className="px-4 py-3.5 overflow-auto" style={{ maxHeight: 400 }}>
             {tc.output ? (
-              <pre
-                className="font-mono whitespace-pre-wrap"
-                style={{
-                  color: "var(--text-secondary)",
-                  lineHeight: 1.65,
-                  background: "transparent",
-                  border: "none",
-                  padding: 0,
-                  fontSize: 12,
-                }}
+              <div
+                className="assistant-prose"
+                style={{ lineHeight: 1.7, fontSize: 12.5 }}
               >
-                {tc.output.slice(0, 2000)}
-              </pre>
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                  {tc.output.slice(0, 4000)}
+                </ReactMarkdown>
+              </div>
             ) : (
               <span
                 className="text-xs italic"
@@ -325,6 +335,8 @@ export const AssistantMessage = memo(function AssistantMessage({
   const { thinking, text } = parseThinking(message.content);
 
   const toolCalls = message.tool_calls ?? [];
+
+  // Agent calls get card treatment; their sub_tool_calls are nested by the backend.
   const agentCalls = toolCalls.filter(isAgentCall);
   const regularCalls = toolCalls.filter((tc) => !isAgentCall(tc));
 
