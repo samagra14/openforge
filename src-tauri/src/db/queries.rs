@@ -30,6 +30,7 @@ pub struct Session {
     pub workspace_id: String,
     pub title: String,
     pub model: String,
+    pub agent_provider: String,
     pub status: String,
     pub claude_session_id: Option<String>,
     pub token_count: i64,
@@ -168,15 +169,15 @@ pub fn get_repo(conn: &Connection, id: &str) -> Result<Repo> {
 
 pub fn insert_session(conn: &Connection, session: &Session) -> Result<()> {
     conn.execute(
-        "INSERT INTO sessions (id, workspace_id, title, model, status, claude_session_id, token_count, cost_usd, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)",
-        params![session.id, session.workspace_id, session.title, session.model, session.status, session.claude_session_id, session.token_count, session.cost_usd, session.created_at],
+        "INSERT INTO sessions (id, workspace_id, title, model, agent_provider, status, claude_session_id, token_count, cost_usd, created_at) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
+        params![session.id, session.workspace_id, session.title, session.model, session.agent_provider, session.status, session.claude_session_id, session.token_count, session.cost_usd, session.created_at],
     )?;
     Ok(())
 }
 
 pub fn list_sessions(conn: &Connection, workspace_id: &str) -> Result<Vec<Session>> {
     let mut stmt = conn.prepare(
-        "SELECT id, workspace_id, title, model, status, claude_session_id, token_count, cost_usd, created_at FROM sessions WHERE workspace_id = ?1 ORDER BY created_at",
+        "SELECT id, workspace_id, title, model, agent_provider, status, claude_session_id, token_count, cost_usd, created_at FROM sessions WHERE workspace_id = ?1 ORDER BY created_at",
     )?;
     let rows = stmt.query_map(params![workspace_id], |row| {
         Ok(Session {
@@ -184,11 +185,12 @@ pub fn list_sessions(conn: &Connection, workspace_id: &str) -> Result<Vec<Sessio
             workspace_id: row.get(1)?,
             title: row.get(2)?,
             model: row.get(3)?,
-            status: row.get(4)?,
-            claude_session_id: row.get(5)?,
-            token_count: row.get(6)?,
-            cost_usd: row.get(7)?,
-            created_at: row.get(8)?,
+            agent_provider: row.get(4)?,
+            status: row.get(5)?,
+            claude_session_id: row.get(6)?,
+            token_count: row.get(7)?,
+            cost_usd: row.get(8)?,
+            created_at: row.get(9)?,
         })
     })?;
     rows.collect()
@@ -198,6 +200,14 @@ pub fn update_session_status(conn: &Connection, id: &str, status: &str) -> Resul
     conn.execute(
         "UPDATE sessions SET status = ?1 WHERE id = ?2",
         params![status, id],
+    )?;
+    Ok(())
+}
+
+pub fn update_session_provider(conn: &Connection, id: &str, agent_provider: &str, model: &str) -> Result<()> {
+    conn.execute(
+        "UPDATE sessions SET agent_provider = ?1, model = ?2 WHERE id = ?3",
+        params![agent_provider, model, id],
     )?;
     Ok(())
 }

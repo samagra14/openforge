@@ -29,6 +29,7 @@ pub fn initialize(conn: &Connection) -> Result<()> {
             workspace_id TEXT NOT NULL REFERENCES workspaces(id),
             title TEXT NOT NULL DEFAULT 'New Chat',
             model TEXT NOT NULL DEFAULT 'sonnet',
+            agent_provider TEXT NOT NULL DEFAULT 'claude-code',
             status TEXT NOT NULL DEFAULT 'idle',
             claude_session_id TEXT,
             token_count INTEGER NOT NULL DEFAULT 0,
@@ -53,5 +54,17 @@ pub fn initialize(conn: &Connection) -> Result<()> {
         CREATE INDEX IF NOT EXISTS idx_messages_session ON messages(session_id);
         ",
     )?;
+
+    // Migration: add agent_provider column to sessions if it doesn't exist
+    // (for databases created before multi-agent support)
+    let has_column: bool = conn
+        .prepare("SELECT agent_provider FROM sessions LIMIT 0")
+        .is_ok();
+    if !has_column {
+        conn.execute_batch(
+            "ALTER TABLE sessions ADD COLUMN agent_provider TEXT NOT NULL DEFAULT 'claude-code';",
+        )?;
+    }
+
     Ok(())
 }

@@ -3,6 +3,21 @@ import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { Repo, Workspace } from "../stores/workspace";
 import type { Session, Message } from "../stores/session";
 
+export interface ModelOption {
+  id: string;
+  name: string;
+}
+
+export interface AgentProviderInfo {
+  id: string;
+  name: string;
+  command: string;
+  output_format: "stream-json" | "structured-json" | "plain-text";
+  supports_resume: boolean;
+  models: ModelOption[];
+  default_model: string;
+}
+
 export interface FileEntry {
   name: string;
   path: string;
@@ -88,13 +103,16 @@ export const commands = {
   getWorkspaceStatus: (workspaceId: string) =>
     invoke<WorkspaceStatusInfo>("get_workspace_status", { workspaceId }),
 
-  createSession: (workspaceId: string, model: string) =>
-    invoke<Session>("create_session", { workspaceId, model }),
+  createSession: (workspaceId: string, model: string, agentProvider?: string) =>
+    invoke<Session>("create_session", { workspaceId, model, agentProvider }),
   sendMessage: (sessionId: string, content: string) =>
     invoke("send_message", { sessionId, content }),
   stopAgent: (sessionId: string) => invoke("stop_agent", { sessionId }),
   getMessages: (sessionId: string) =>
     invoke<Message[]>("get_messages", { sessionId }),
+  listProviders: () => invoke<AgentProviderInfo[]>("list_providers"),
+  updateSessionProvider: (sessionId: string, agentProvider: string, model: string) =>
+    invoke("update_session_provider", { sessionId, agentProvider, model }),
 
   listFiles: (workspaceId: string) =>
     invoke<FileEntry[]>("list_files", { workspaceId }),
