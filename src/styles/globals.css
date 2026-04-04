@@ -390,3 +390,75 @@ button:focus-visible {
   text-transform: uppercase;
   color: var(--text-secondary);
 }
+
+/* ─── Command Palette (cmdk) ─── */
+.command-palette-group [cmdk-group-heading] {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 8px 12px 4px;
+}
+
+.command-palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.1s ease;
+}
+
+.command-palette-item[data-selected="true"] {
+  background: var(--bg-tertiary);
+}
+
+.command-palette-item:hover {
+  background: var(--bg-secondary);
+}
+
+[cmdk-input] {
+  caret-color: var(--accent);
+}
+
+[cmdk-input]::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* ─── Chat search highlights ─── */
+.search-highlight {
+  background: var(--accent-subtle);
+  border-bottom: 2px solid var(--accent-dim);
+  border-radius: 1px;
+  padding: 0 1px;
+}
+
+.search-highlight-active {
+  background: var(--accent);
+  color: #fff;
+  border-bottom: none;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+/* ─── System message divider ─── */
+.system-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 0;
+  color: var(--text-tertiary);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.system-message::before,
+.system-message::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}

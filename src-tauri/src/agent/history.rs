@@ -103,6 +103,22 @@ pub fn discover_session_id(worktree_path: &str, first_message_content: &str) -> 
     None
 }
 
+/// Check if a user message's text content is an internal Claude Code command/system message
+/// (e.g. /compact output, local-command caveats, system reminders) rather than
+/// a real user-typed message.
+fn is_internal_command_text(text: &str) -> bool {
+    let trimmed = text.trim();
+    // Messages containing these XML tags are internal Claude Code machinery
+    trimmed.contains("<command-name>")
+        || trimmed.contains("<local-command-caveat>")
+        || trimmed.contains("<local-command-stdout>")
+        || trimmed.contains("<command-message>")
+        || trimmed.contains("<command-args>")
+        || trimmed.contains("<system-reminder>")
+        || trimmed.contains("<system-instruction>")
+        || trimmed.contains("<system_instruction>")
+}
+
 /// Extract text content from a tool_result's content field.
 ///
 /// Content can be:
@@ -303,7 +319,7 @@ pub fn load_history(worktree_path: &str, claude_session_id: &str) -> Result<Vec<
                 let content = &message["content"];
 
                 if let Some(text) = content.as_str() {
-                    if !text.is_empty() {
+                    if !text.is_empty() && !is_internal_command_text(text) {
                         order.push(("user".into(), uuid.clone()));
                         user_messages.insert(uuid.clone(), HistoryMessage {
                             id: uuid,
@@ -332,12 +348,13 @@ pub fn load_history(worktree_path: &str, claude_session_id: &str) -> Result<Vec<
                             _ => {}
                         }
                     }
-                    if !text_parts.is_empty() {
+                    let joined = text_parts.join("\n");
+                    if !joined.is_empty() && !is_internal_command_text(&joined) {
                         order.push(("user".into(), uuid.clone()));
                         user_messages.insert(uuid.clone(), HistoryMessage {
                             id: uuid,
                             role: "user".to_string(),
-                            content: text_parts.join("\n"),
+                            content: joined,
                             tool_calls: None,
                             timestamp,
                         });

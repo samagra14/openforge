@@ -11,7 +11,7 @@ export interface ToolCall {
 export interface Message {
   id: string;
   session_id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   tool_calls?: ToolCall[];
   subagent_count?: number;

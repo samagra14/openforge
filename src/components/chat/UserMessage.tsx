@@ -1,6 +1,7 @@
 import { memo, useState } from "react";
 import { RotateCcw } from "lucide-react";
 import type { Message } from "../../stores/session";
+import { HighlightText } from "./HighlightText";
 import { commands } from "../../lib/tauri";
 
 interface Props {
@@ -39,7 +40,7 @@ export const UserMessage = memo(function UserMessage({ message }: Props) {
             className="whitespace-pre-wrap"
             style={{ lineHeight: 1.75, letterSpacing: "-0.01em", fontSize: 14 }}
           >
-            {message.content}
+            <HighlightText text={message.content} />
           </p>
         </div>
 

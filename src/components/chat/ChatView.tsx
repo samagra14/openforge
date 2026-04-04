@@ -1,8 +1,12 @@
 import { useEffect, useRef } from "react";
 import { useSessionStore } from "../../stores/session";
+import { useUIStore } from "../../stores/ui";
 import type { Message, ToolCall } from "../../stores/session";
 import { UserMessage } from "./UserMessage";
 import { AssistantMessage } from "./AssistantMessage";
+import { SystemMessage } from "./SystemMessage";
+import { ChatSearchProvider } from "./ChatSearchContext";
+import { ChatSearchBar } from "./ChatSearchBar";
 import { commands } from "../../lib/tauri";
 
 interface Props {
@@ -16,6 +20,7 @@ export function ChatView({ sessionId }: Props) {
   const rawMessages = useSessionStore((s) => s.messages[sessionId]);
   const messages = rawMessages ?? EMPTY_MESSAGES;
   const messagesLoaded = useSessionStore((s) => s.messagesLoaded.has(sessionId));
+  const chatSearchOpen = useUIStore((s) => s.chatSearchOpen);
 
   // Lazy-load messages from Claude's JSONL when opening a persisted session
   useEffect(() => {
@@ -133,31 +138,38 @@ export function ChatView({ sessionId }: Props) {
   }
 
   return (
-    <div ref={scrollRef} className="overflow-y-auto h-full">
-      <div className="max-w-3xl mx-auto py-8 px-6 space-y-7">
-        {messages.map((msg) =>
-          msg.role === "user" ? (
-            <UserMessage key={msg.id} message={msg} />
-          ) : (
-            <AssistantMessage key={msg.id} message={msg} />
-          )
-        )}
+    <ChatSearchProvider>
+      <div className="relative h-full">
+        {chatSearchOpen && <ChatSearchBar />}
+        <div ref={scrollRef} className="overflow-y-auto h-full">
+          <div className="max-w-3xl mx-auto py-8 px-6 space-y-7">
+            {messages.map((msg) =>
+              msg.role === "system" ? (
+                <SystemMessage key={msg.id} message={msg} />
+              ) : msg.role === "user" ? (
+                <UserMessage key={msg.id} message={msg} />
+              ) : (
+                <AssistantMessage key={msg.id} message={msg} />
+              )
+            )}
 
-        {session?.status === "running" && (
-          <div className="flex items-center gap-3 py-4">
-            <span
-              className="w-2.5 h-2.5 rounded-full animate-pulse-dot"
-              style={{ background: "var(--accent)" }}
-            />
-            <span
-              className="text-sm"
-              style={{ color: "var(--text-secondary)" }}
-            >
-              Claude is working...
-            </span>
+            {session?.status === "running" && (
+              <div className="flex items-center gap-3 py-4">
+                <span
+                  className="w-2.5 h-2.5 rounded-full animate-pulse-dot"
+                  style={{ background: "var(--accent)" }}
+                />
+                <span
+                  className="text-sm"
+                  style={{ color: "var(--text-secondary)" }}
+                >
+                  Claude is working...
+                </span>
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </ChatSearchProvider>
   );
 }

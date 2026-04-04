@@ -110,9 +110,13 @@ export const commands = {
     invoke<Message[]>("load_session_history", { sessionId }),
   clearSessionClaudeId: (sessionId: string) =>
     invoke("clear_session_claude_id", { sessionId }),
+  restartSession: (sessionId: string) =>
+    invoke("restart_session", { sessionId }),
 
   listFiles: (workspaceId: string) =>
     invoke<FileEntry[]>("list_files", { workspaceId }),
+  listFilesFlat: (workspaceId: string) =>
+    invoke<string[]>("list_files_flat", { workspaceId }),
   readFile: (workspaceId: string, path: string) =>
     invoke<string>("read_file", { workspaceId, path }),
   getDiff: (workspaceId: string) =>

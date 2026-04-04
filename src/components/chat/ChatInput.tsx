@@ -9,6 +9,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useSessionStore } from "../../stores/session";
+import { SlashCommandMenu } from "./SlashCommandMenu";
 import { commands } from "../../lib/tauri";
 
 interface Props {
@@ -21,6 +22,7 @@ export function ChatInput({ sessionId }: Props) {
   const [model, setModel] = useState("sonnet");
   const [thinking, setThinking] = useState(false);
   const [showModelMenu, setShowModelMenu] = useState(false);
+  const [showSlashMenu, setShowSlashMenu] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const session = useSessionStore((s) =>
     s.sessions.find((sess) => sess.id === sessionId)
@@ -29,11 +31,33 @@ export function ChatInput({ sessionId }: Props) {
   const isRunning = session?.status === "running";
   const disabled = isRunning || sending;
 
+  // Detect slash command mode: starts with "/" and no spaces yet
   const handleSend = useCallback(async () => {
     const trimmed = value.trim();
     if (!trimmed || disabled) return;
 
     setSending(true);
+
+    // Handle /restart specially — clears session, inserts system message
+    if (trimmed === "/restart") {
+      addMessage(sessionId, {
+        id: crypto.randomUUID(),
+        session_id: sessionId,
+        role: "system",
+        content: "Session restarted",
+        timestamp: new Date().toISOString(),
+      });
+      setValue("");
+      if (textareaRef.current) textareaRef.current.style.height = "auto";
+      try {
+        await commands.restartSession(sessionId);
+      } catch (e) {
+        console.error("Failed to restart session:", e);
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
 
     addMessage(sessionId, {
       id: crypto.randomUUID(),
@@ -66,17 +90,41 @@ export function ChatInput({ sessionId }: Props) {
   }, [sessionId]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Let SlashCommandMenu handle these keys when visible — prevent textarea defaults
+    if (showSlashMenu && (e.key === "ArrowUp" || e.key === "ArrowDown" || e.key === "Tab" || e.key === "Enter")) {
+      e.preventDefault();
+      return; // SlashCommandMenu's capture-phase listener will handle these
+    }
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
     }
+    if (e.key === "Escape" && showSlashMenu) {
+      e.preventDefault();
+      setShowSlashMenu(false);
+    }
   };
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setValue(e.target.value);
+    const newValue = e.target.value;
+    setValue(newValue);
+
+    // Show/hide slash command menu
+    const isSlash = newValue.startsWith("/") && !newValue.includes(" ");
+    setShowSlashMenu(isSlash && newValue.length > 0);
+
     const el = e.target;
     el.style.height = "auto";
     el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  };
+
+  const handleSlashSelect = (command: string) => {
+    setValue(command);
+    setShowSlashMenu(false);
+    // Auto-send the slash command
+    setTimeout(() => {
+      textareaRef.current?.focus();
+    }, 0);
   };
 
   const hasText = value.trim().length > 0;
@@ -90,6 +138,15 @@ export function ChatInput({ sessionId }: Props) {
 
   return (
     <div className="max-w-3xl mx-auto w-full px-6 pb-5">
+      <div className="relative">
+        {/* Slash command autocomplete — outside overflow-hidden container */}
+        {showSlashMenu && (
+          <SlashCommandMenu
+            filter={value}
+            onSelect={handleSlashSelect}
+            onDismiss={() => setShowSlashMenu(false)}
+          />
+        )}
       <div
         className="rounded-2xl overflow-hidden"
         style={{
@@ -99,6 +156,7 @@ export function ChatInput({ sessionId }: Props) {
           transition: "border-color 0.2s ease, box-shadow 0.2s ease",
         }}
       >
+
         {/* Input row */}
         <div className="flex items-end px-5 pt-4 pb-3">
           <textarea
@@ -250,6 +308,7 @@ export function ChatInput({ sessionId }: Props) {
             <Plus size={15} style={{ color: "var(--text-tertiary)" }} />
           </button>
         </div>
+      </div>
       </div>
     </div>
   );
