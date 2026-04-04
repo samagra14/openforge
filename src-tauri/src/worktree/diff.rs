@@ -135,6 +135,23 @@ pub fn read_file_at_ref(worktree_path: &str, git_ref: &str, file_path: &str) -> 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
 }
 
+/// List all files as a flat list of relative paths, respecting .gitignore.
+/// More efficient than list_files_recursive for search — no tree building.
+pub fn list_files_flat(dir_path: &str) -> Result<Vec<String>, String> {
+    let output = Command::new("git")
+        .args(["ls-files", "--cached", "--others", "--exclude-standard"])
+        .current_dir(dir_path)
+        .output()
+        .map_err(|e| format!("Failed to list files: {e}"))?;
+
+    if !output.status.success() {
+        return Err("git ls-files failed".to_string());
+    }
+
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    Ok(stdout.lines().map(|l| l.to_string()).collect())
+}
+
 /// Recursively list files in a directory, respecting .gitignore.
 pub fn list_files_recursive(dir_path: &str) -> Result<Vec<FileEntry>, String> {
     let output = Command::new("git")

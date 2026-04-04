@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# =============================================================================
+# Pre-commit hook: Supply chain security checks
+# 1. Block ^ and ~ ranges in package.json (all deps must be pinned)
+# 2. Block packages published less than 7 days ago
+# =============================================================================
+
+# --- Check 1: Block unpinned dependencies ---
+if git diff --cached --name-only | grep -q "package.json"; then
+  if git show :package.json | grep -E '"[~^]' > /dev/null 2>&1; then
+    echo "ERROR: package.json contains unpinned dependencies (^ or ~)."
+    echo "All dependencies must use exact versions. Remove ^ and ~ prefixes."
+    exit 1
+  fi
+fi
+
+# --- Check 2: Block packages published less than 7 days ago ---
+if git diff --cached --name-only | grep -q "package.json"; then
+  # macOS date uses -v flag, GNU date uses -d flag
+  SEVEN_DAYS_AGO=$(date -v-7d +%s 2>/dev/null || date -d "7 days ago" +%s 2>/dev/null || echo "0")
+
+  if [ "$SEVEN_DAYS_AGO" = "0" ]; then
+    echo "WARNING: Could not compute 7-day threshold. Skipping package age check."
+  else
+    # Get newly added/changed deps by diffing staged package.json vs HEAD
+    CHANGED_DEPS=$(diff \
+      <(git show HEAD:package.json 2>/dev/null || echo "{}") \
+      <(git show :package.json) \
+      | grep -E '^\+.*": "' \
+      | grep -v '^\+\+\+' \
+      | sed 's/.*"\(.*\)": "\(.*\)".*/\1@\2/' || true)
+
+    for dep in $CHANGED_DEPS; do
+      # Handle scoped packages (@org/pkg@version) — split on last @
+      PKG_NAME=$(echo "$dep" | rev | cut -d@ -f2- | rev)
+      PKG_VERSION=$(echo "$dep" | rev | cut -d@ -f1 | rev)
+
+      # Skip if version is empty or looks like a range
+      if [ -z "$PKG_VERSION" ] || echo "$PKG_VERSION" | grep -qE '[^0-9.]'; then
+        continue
+      fi
+
+      # Query npm registry for publish date
+      PUBLISH_DATE=$(npm view "${PKG_NAME}@${PKG_VERSION}" time --json 2>/dev/null \
+        | node -e "
+          try {
+            const d = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));
+            console.log(d['${PKG_VERSION}'] || '');
+          } catch(e) { console.log(''); }
+        " 2>/dev/null || echo "")
+
+      if [ -n "$PUBLISH_DATE" ]; then
+        # Parse ISO date to timestamp (macOS + GNU compatible)
+        PUB_TS=$(date -jf "%Y-%m-%dT%H:%M:%S" "$(echo "$PUBLISH_DATE" | cut -d. -f1)" +%s 2>/dev/null \
+          || date -d "$PUBLISH_DATE" +%s 2>/dev/null \
+          || echo "0")
+
+        if [ "$PUB_TS" != "0" ] && [ "$PUB_TS" -gt "$SEVEN_DAYS_AGO" ]; then
+          echo "ERROR: ${PKG_NAME}@${PKG_VERSION} was published less than 7 days ago."
+          echo "Published: $PUBLISH_DATE"
+          echo "Wait until the package is at least 7 days old before adding it."
+          exit 1
+        fi
+      fi
+    done
+  fi
+fi

@@ -1,7 +1,8 @@
-import { memo, useState } from "react";
+import { memo, useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { Message, ToolCall } from "../../stores/session";
+import { HighlightText } from "./HighlightText";
 import {
   ChevronRight,
   ChevronDown,
@@ -16,6 +17,20 @@ import {
   FolderSearch,
 } from "lucide-react";
 import { FileTypeIcon } from "../common/FileTypeIcon";
+
+/** Wrap string children with HighlightText for search highlighting */
+function wrapTextChildren(children: React.ReactNode): React.ReactNode {
+  if (!children) return children;
+  if (typeof children === "string") {
+    return <HighlightText text={children} />;
+  }
+  if (Array.isArray(children)) {
+    return children.map((child, i) =>
+      typeof child === "string" ? <HighlightText key={i} text={child} /> : child
+    );
+  }
+  return children;
+}
 
 interface Props {
   message: Message;
@@ -340,6 +355,32 @@ export const AssistantMessage = memo(function AssistantMessage({
   const agentCalls = toolCalls.filter(isAgentCall);
   const regularCalls = toolCalls.filter((tc) => !isAgentCall(tc));
 
+  // Custom ReactMarkdown components to enable search highlighting in text nodes
+  const markdownComponents = useMemo(
+    () => ({
+      // Override text-bearing elements to wrap string children in HighlightText
+      p: ({ children, ...props }: any) => (
+        <p {...props}>{wrapTextChildren(children)}</p>
+      ),
+      li: ({ children, ...props }: any) => (
+        <li {...props}>{wrapTextChildren(children)}</li>
+      ),
+      strong: ({ children, ...props }: any) => (
+        <strong {...props}>{wrapTextChildren(children)}</strong>
+      ),
+      em: ({ children, ...props }: any) => (
+        <em {...props}>{wrapTextChildren(children)}</em>
+      ),
+      td: ({ children, ...props }: any) => (
+        <td {...props}>{wrapTextChildren(children)}</td>
+      ),
+      th: ({ children, ...props }: any) => (
+        <th {...props}>{wrapTextChildren(children)}</th>
+      ),
+    }),
+    []
+  );
+
   const handleCopy = () => {
     navigator.clipboard.writeText(text || message.content);
     setCopied(true);
@@ -356,7 +397,12 @@ export const AssistantMessage = memo(function AssistantMessage({
       {/* Main text content */}
       {text && (
         <div className="assistant-prose" style={{ lineHeight: 1.85, fontSize: 14.5 }}>
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{text}</ReactMarkdown>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={markdownComponents}
+          >
+            {text}
+          </ReactMarkdown>
         </div>
       )}
 

@@ -448,6 +448,16 @@ fn clear_session_claude_id(
     queries::clear_session_claude_id(&db, &session_id).map_err(|e| e.to_string())
 }
 
+#[tauri::command]
+fn restart_session(
+    state: State<AppState>,
+    session_id: String,
+) -> Result<(), String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    queries::clear_session_claude_id(&db, &session_id).map_err(|e| e.to_string())?;
+    queries::update_session_status(&db, &session_id, "idle").map_err(|e| e.to_string())
+}
+
 // --- File commands ---
 
 #[tauri::command]
@@ -455,6 +465,13 @@ fn list_files(state: State<AppState>, workspace_id: String) -> Result<Vec<FileEn
     let db = state.db.lock().map_err(|e| e.to_string())?;
     let ws = queries::get_workspace(&db, &workspace_id).map_err(|e| e.to_string())?;
     worktree::diff::list_files_recursive(&ws.worktree_path)
+}
+
+#[tauri::command]
+fn list_files_flat(state: State<AppState>, workspace_id: String) -> Result<Vec<String>, String> {
+    let db = state.db.lock().map_err(|e| e.to_string())?;
+    let ws = queries::get_workspace(&db, &workspace_id).map_err(|e| e.to_string())?;
+    worktree::diff::list_files_flat(&ws.worktree_path)
 }
 
 #[tauri::command]
@@ -839,7 +856,9 @@ pub fn run() {
             get_messages,
             load_session_history,
             clear_session_claude_id,
+            restart_session,
             list_files,
+            list_files_flat,
             read_file,
             get_diff,
             get_file_diff,
